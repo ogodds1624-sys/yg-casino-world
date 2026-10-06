@@ -48,6 +48,13 @@ body > hr {
     letter-spacing: 0.14em;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
 button,
 a.button {
     display: inline-flex;
@@ -644,6 +651,27 @@ button.copy:hover {
         margin-bottom: 4px;
         font-size: 0.85rem;
         letter-spacing: 0.08em;
+    }
+
+    .home .header {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .home .header h2 {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-bottom: 0;
+    }
+
+    .home .header-actions {
+        flex: 0 0 auto;
+    }
+
+    .home .header a.button {
+        min-height: 36px;
+        padding: 0 10px;
+        font-size: 0.68rem;
     }
 
     .header a.button {
