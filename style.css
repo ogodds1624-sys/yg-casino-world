@@ -1072,6 +1072,13 @@ button.copy:hover {
     text-transform: uppercase;
 }
 
+.admin .kicker.panel-name {
+    color: var(--gold);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
 .admin-note h2,
 .revenue-section h2,
 .testimonies h2,
