@@ -390,7 +390,7 @@ body > button {
 }
 
 .footer {
-    margin-top: 48px;
+    margin-top: 16px;
     margin-bottom: 36px;
     padding: 28px 28px 22px;
     border: 1px solid rgba(232, 189, 98, 0.35);
@@ -398,11 +398,7 @@ body > button {
     background: rgba(18, 26, 22, 0.85);
 }
 
-.footer-top {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 28px;
-    align-items: end;
+.footer-brand {
     padding-bottom: 22px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -424,29 +420,6 @@ body > button {
 
 .footer-brand p + p {
     margin-top: 4px;
-}
-
-.footer-cta {
-    text-align: right;
-}
-
-.footer-cta p {
-    margin-bottom: 12px;
-}
-
-.footer button {
-    min-height: 46px;
-    padding: 0 22px;
-    border-radius: 999px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-size: 0.82rem;
-    color: var(--gold);
-}
-
-.footer button:hover {
-    background: var(--gold);
-    color: #17150f;
 }
 
 .footer-nav {
@@ -761,18 +734,9 @@ button.copy:hover {
         padding: 22px 18px 16px;
     }
 
-    .footer-top,
     .footer-nav {
         grid-template-columns: 1fr;
         gap: 18px;
-    }
-
-    .footer-cta {
-        text-align: left;
-    }
-
-    .footer button {
-        width: 100%;
     }
 
     .packages h1 {
@@ -1024,6 +988,16 @@ button.copy:hover {
     width: min(100% - 48px, 1080px);
     margin-right: auto;
     margin-left: auto;
+}
+
+.admin-header[hidden],
+.admin-main[hidden],
+.admin-lock[hidden] {
+    display: none;
+}
+
+.admin-lock-error {
+    color: #e24b4b;
 }
 
 .admin-header {

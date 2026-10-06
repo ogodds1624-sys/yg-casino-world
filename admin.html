@@ -8,7 +8,16 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body class="admin">
-        <header class="admin-header">
+        <div class="login-container connect-card admin-lock" id="admin-lock">
+            <h2>Admin access</h2>
+            <form id="admin-lock-form">
+                <label for="admin-code">Access code</label>
+                <input id="admin-code" name="code" type="password" inputmode="numeric" autocomplete="off" maxlength="6" required>
+                <p class="admin-lock-error" id="admin-lock-error" hidden>That code is not correct.</p>
+                <button type="submit">Enter</button>
+            </form>
+        </div>
+        <header class="admin-header" hidden>
             <h2>CASINO WORLD <span>ADMIN</span></h2>
             <nav class="admin-nav">
                 <button type="button" class="is-on" data-panel="overview">Overview</button>
@@ -18,29 +27,23 @@
                 <a class="button" href="index.html">Site</a>
             </nav>
         </header>
-        <main class="admin-main">
+        <main class="admin-main" hidden>
             <div id="panel-overview">
             <section class="admin-intro">
                 <div>
-                    <p class="kicker">Control room</p>
+                    <p class="kicker"> Admin Control Panel</p>
                     <h1>Overview</h1>
                 </div>
                 <button type="button" id="admin-refresh">Refresh</button>
             </section>
             <section class="admin-note">
-                <h2>At a glance</h2>
                 <p>Live snapshot of accounts that connected.</p>
             </section>
             <section class="admin-stats">
                 <div class="card">
-                    <h3>Total members</h3>
+                    <h3>Total Visits</h3>
                     <p class="amount" id="stat-members">0</p>
                     <p id="stat-members-note">0 connected accounts</p>
-                </div>
-                <div class="card">
-                    <h3>Today</h3>
-                    <p class="amount" id="stat-today">0</p>
-                    <p id="stat-today-note">0 accounts today</p>
                 </div>
                 <div class="card">
                     <h3>Daily Ghana</h3>

@@ -76,15 +76,11 @@ const renderBackend = () => {
             .filter((item) => !onlyToday || dayKey(item.date) === today)
             .reduce((total, item) => total + packageAmount(item.package), 0);
     };
-    const membersToday = store.members.filter((member) => dayKey(member.joined) === today).length;
     const connected = store.members.filter((member) => member.phone).length;
     const membersAmount = document.getElementById("stat-members");
-    const todayAmount = document.getElementById("stat-today");
     if (membersAmount) {
         membersAmount.textContent = String(store.members.length);
         document.getElementById("stat-members-note").textContent = connected + " connected account" + (connected === 1 ? "" : "s");
-        todayAmount.textContent = String(membersToday);
-        document.getElementById("stat-today-note").textContent = membersToday + " account" + (membersToday === 1 ? "" : "s") + " today";
         document.getElementById("stat-daily-gh").textContent = String(sumFor("gh", true));
         document.getElementById("stat-total-gh").textContent = String(sumFor("gh", false));
         document.getElementById("stat-daily-ng").textContent = "₦" + sumFor("ngn", true);
@@ -601,6 +597,31 @@ if (adminRefresh) {
 }
 
 renderBackend();
+
+const adminLock = document.getElementById("admin-lock");
+if (adminLock) {
+    const adminHeader = document.querySelector(".admin-header");
+    const adminMain = document.querySelector(".admin-main");
+    const adminError = document.getElementById("admin-lock-error");
+    const openAdmin = () => {
+        sessionStorage.setItem("casino-world-admin", "open");
+        adminLock.hidden = true;
+        adminHeader.hidden = false;
+        adminMain.hidden = false;
+    };
+    if (sessionStorage.getItem("casino-world-admin") === "open") {
+        openAdmin();
+    }
+    document.getElementById("admin-lock-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const code = String(new FormData(event.currentTarget).get("code")).trim();
+        if (code === "054391") {
+            openAdmin();
+        } else {
+            adminError.hidden = false;
+        }
+    });
+}
 
 const predictionFeed = document.querySelector(".feed");
 if (predictionFeed) {
