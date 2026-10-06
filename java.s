@@ -47,6 +47,48 @@ const currentMember = (store) => {
 };
 
 const packagePage = (country) => country === "ngn" ? "packageN.html" : "plist.html";
+
+const pageBackHref = () => {
+    const file = window.location.pathname.split("/").pop() || "index.html";
+    const params = new URLSearchParams(window.location.search);
+    const packages = params.get("pay") === "ngn" || params.get("country") === "ngn" ? "packageN.html" : "plist.html";
+    const targets = {
+        "login.html": "index.html",
+        "signup.html": "index.html",
+        "country.html": "index.html",
+        "connecting.html": "country.html",
+        "plist.html": "country.html",
+        "packageN.html": "country.html",
+        "pay1.html": packages,
+        "pay2.html": packages,
+        "pay3.html": packages,
+        "admin.html": "index.html",
+        "settings.html": "admin.html",
+        "partner.html": "partnerlogs.html",
+        "partnerlogs.html": "index.html",
+        "session.html": packages
+    };
+    return targets[file] || "";
+};
+
+const pageBack = document.createElement("a");
+pageBack.className = "page-back";
+pageBack.textContent = "Back";
+const pageBackTarget = pageBackHref();
+if (pageBackTarget) {
+    pageBack.href = pageBackTarget;
+    pageBack.addEventListener("click", (event) => {
+        event.preventDefault();
+        goTo(pageBackTarget);
+    });
+} else {
+    pageBack.href = "index.html";
+    pageBack.addEventListener("click", (event) => {
+        event.preventDefault();
+        window.history.back();
+    });
+}
+document.body.prepend(pageBack);
 const LIVE_URL = "https://baker-king-acre-ivory.grok.me";
 const LIVE_WINDOW = "casino-live";
 
