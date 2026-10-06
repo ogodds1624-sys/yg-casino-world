@@ -596,23 +596,23 @@ hr {
         order: 2;
     }
 
-    .home .home-phone {
+    .home .main-content > p {
         order: 3;
+        margin-bottom: 18px;
+    }
+
+    .home .actions {
+        order: 4;
+    }
+
+    .home .home-phone {
+        order: 5;
         width: min(78%, 280px);
         margin-top: 8px;
     }
 
     .home .signal {
         padding: 0;
-    }
-
-    .home .main-content > p {
-        order: 4;
-        margin-bottom: 18px;
-    }
-
-    .home .actions {
-        order: 5;
     }
 
     .home .feed {
