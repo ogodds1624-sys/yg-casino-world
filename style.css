@@ -390,36 +390,89 @@ body > button {
 }
 
 .footer {
-    padding: 64px 0 40px;
+    margin-top: 48px;
+    margin-bottom: 36px;
+    padding: 28px 28px 22px;
+    border: 1px solid rgba(232, 189, 98, 0.35);
+    border-radius: 16px;
+    background: rgba(18, 26, 22, 0.85);
 }
 
-.footer h1 {
-    margin: 0 0 12px;
+.footer-top {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 28px;
+    align-items: end;
+    padding-bottom: 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-brand h2 {
+    margin: 0 0 10px;
     color: var(--gold);
-    font-size: 1.5rem;
-    letter-spacing: 0.08em;
+    font-size: 1.35rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 .footer p {
-    max-width: 560px;
+    max-width: 36rem;
     margin: 0;
     color: var(--muted);
     line-height: 1.7;
 }
 
-.footer-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 26px;
-    margin-top: 28px;
+.footer-brand p + p {
+    margin-top: 4px;
 }
 
-.footer-links a {
+.footer-cta {
+    text-align: right;
+}
+
+.footer-cta p {
+    margin-bottom: 12px;
+}
+
+.footer button {
+    min-height: 46px;
+    padding: 0 22px;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    color: var(--gold);
+}
+
+.footer button:hover {
+    background: var(--gold);
+    color: #17150f;
+}
+
+.footer-nav {
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    gap: 18px 72px;
+    justify-content: start;
+    padding-top: 22px;
+}
+
+.footer-label {
+    margin: 0 0 8px;
+    color: var(--gold);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.footer-nav a {
+    display: block;
+    margin-top: 8px;
     color: var(--muted);
     text-decoration: none;
 }
 
-.footer-links a:hover {
+.footer-nav a:hover {
     color: var(--gold);
 }
 
@@ -705,7 +758,21 @@ button.copy:hover {
     }
 
     .footer {
-        padding-top: 48px;
+        padding: 22px 18px 16px;
+    }
+
+    .footer-top,
+    .footer-nav {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .footer-cta {
+        text-align: left;
+    }
+
+    .footer button {
+        width: 100%;
     }
 
     .packages h1 {
@@ -729,10 +796,6 @@ button.copy:hover {
 
     .momo-row .value {
         text-align: left;
-    }
-
-    .footer-links {
-        gap: 10px 16px;
     }
 
     .partner-tabs {
