@@ -13,7 +13,8 @@
             <nav class="admin-nav" id="partner-dash-nav">
                 <button type="button" class="is-on" data-partner-panel="overview">Overview</button>
                 <button type="button" data-partner-panel="referrals">Referrals</button>
-                <a class="button" href="partnerlogs.html">Sign out</a>
+                <button type="button" data-partner-panel="payout">Payout</button>
+                <a class="button" id="partner-sign-out" href="partnerlogs.html">Sign out</a>
             </nav>
         </header>
         <main class="admin-main">
@@ -138,6 +139,31 @@
                         </table>
                     </div>
                     <p class="members-empty" id="referrals-empty">No referrals yet.</p>
+                </section>
+            </div>
+            <div id="partner-panel-payout" hidden>
+                <section class="admin-intro">
+                    <div>
+                        <p class="kicker">Earnings</p>
+                        <h1>Request payout</h1>
+                    </div>
+                </section>
+                <section class="card payout-card">
+                    <h2>Yesterday</h2>
+                    <p id="payout-day"></p>
+                    <p id="payout-signed-out" hidden>Sign in to request yesterday's payout. <a href="partnerlogs.html">Partner sign in</a></p>
+                    <div class="payout-amounts" id="payout-amounts">
+                        <div>
+                            <h3>Ghana</h3>
+                            <p class="amount" id="payout-ghs">GHS 0</p>
+                        </div>
+                        <div>
+                            <h3>Nigeria</h3>
+                            <p class="amount" id="payout-ngn">NGN 0</p>
+                        </div>
+                    </div>
+                    <p id="payout-note"></p>
+                    <button type="button" id="payout-request">Request payout</button>
                 </section>
             </div>
         </main>

@@ -24,6 +24,7 @@
                 <button type="button" data-panel="members">Members</button>
                 <button type="button" data-panel="transactions">Transactions</button>
                 <button type="button" data-panel="partners">Partners</button>
+                <button type="button" data-panel="payouts">Payouts</button>
                 <a class="button" href="settings.html">Settings</a>
             </nav>
         </header>
@@ -220,6 +221,10 @@
                             <span>Referral <span>Optional</span></span>
                             <input type="text" name="referral" autocomplete="off" placeholder="Referral code (optional)">
                         </label>
+                        <label>
+                            Commission (%)
+                            <input type="number" name="commission" min="0" max="100" step="0.01" value="0" inputmode="decimal">
+                        </label>
                         <button type="submit">Add partner</button>
                     </form>
                 </section>
@@ -236,9 +241,9 @@
                                     <th>Status</th>
                                     <th>referral code</th>
                                     <th>Referral link</th>
-                                    <th>Commission</th>
-                                    <th>Revenue (GHS)</th>
-                                    <th>Revenue (NGN)</th>
+                                    <th>Commission (%)</th>
+                                    <th>Partner Earnings (GHS)</th>
+                                    <th>Partner Earnings (NGN)</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -246,6 +251,32 @@
                         </table>
                     </div>
                     <p class="members-empty" id="partners-empty">No partners yet.</p>
+                </section>
+            </div>
+            <div id="panel-payouts" hidden>
+                <section class="admin-intro">
+                    <div>
+                        <p class="kicker">Partners</p>
+                        <h1>Payout requests</h1>
+                    </div>
+                </section>
+                <section class="card members-panel">
+                    <div class="members-wrap">
+                        <table class="members">
+                            <thead>
+                                <tr>
+                                    <th>Requested</th>
+                                    <th>Partner</th>
+                                    <th>Work day</th>
+                                    <th>GHS</th>
+                                    <th>NGN</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payout-request-body"></tbody>
+                        </table>
+                    </div>
+                    <p class="members-empty" id="payouts-empty">No payout requests yet.</p>
                 </section>
             </div>
         </main>

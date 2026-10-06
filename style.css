@@ -1616,6 +1616,42 @@ button.copy:hover {
     font-weight: 700;
 }
 
+.payout-card h2 {
+    margin: 0 0 8px;
+    color: var(--gold);
+}
+
+.payout-amounts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 8px 0 16px;
+}
+
+.payout-amounts h3 {
+    margin: 0;
+}
+
+.payout-card .amount {
+    margin: 8px 0 0;
+}
+
+#payout-note,
+#payout-signed-out {
+    margin: 0 0 16px;
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
+}
+
+button:disabled:hover {
+    background: transparent;
+    transform: none;
+}
+
 .admin .card p:last-child {
     margin: 0;
 }
@@ -1753,6 +1789,23 @@ button.copy:hover {
     font-weight: 600;
 }
 
+.commission-input {
+    width: 5.5rem;
+    min-height: 36px;
+    margin: 0;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 7px;
+    background: #0b100e;
+    color: #f5f3eb;
+    font: inherit;
+}
+
+.commission-input:focus {
+    border-color: var(--gold);
+    outline: 2px solid rgba(232, 189, 98, 0.35);
+}
+
 .members-empty {
     margin: 16px 0 0;
     color: var(--muted);
@@ -1836,17 +1889,22 @@ button.copy:hover {
     }
 
     .admin-nav {
+        flex-wrap: wrap;
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
 
     .admin-nav button,
     .admin-nav a.button {
-        flex: 1 1 0;
+        flex: 1 1 auto;
         min-width: 0;
         min-height: 36px;
-        padding: 0 6px;
+        padding: 0 10px;
         font-size: 0.68rem;
+    }
+
+    .payout-amounts {
+        grid-template-columns: 1fr;
     }
 
     .admin-intro {

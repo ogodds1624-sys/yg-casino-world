@@ -1,12 +1,16 @@
 const STORE_KEY = "casino-world-backend";
 const MEMBER_KEY = "casino-world-member";
 const REF_KEY = "casino-world-ref";
+const PARTNER_KEY = "casino-world-partner";
 
 const readStore = () => {
-    const empty = { members: [], transactions: [], partners: [] };
+    const empty = { members: [], transactions: [], partners: [], payouts: [] };
     try {
         const saved = JSON.parse(localStorage.getItem(STORE_KEY));
         if (saved && Array.isArray(saved.members) && Array.isArray(saved.transactions) && Array.isArray(saved.partners)) {
+            if (!Array.isArray(saved.payouts)) {
+                saved.payouts = [];
+            }
             return saved;
         }
     } catch (error) {
@@ -104,6 +108,51 @@ const dayKey = (value) => {
 const packageAmount = (label) => {
     const match = String(label).replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
     return match ? Number(match[1]) : 0;
+};
+
+const commissionPercent = (partner) => {
+    const value = Number(partner && partner.commission);
+    if (!Number.isFinite(value)) {
+        return 0;
+    }
+    return Math.min(100, Math.max(0, value));
+};
+
+const formatAmount = (amount) => {
+    const value = Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+};
+
+const partnerEarnings = (gross, percent) => {
+    const commission = gross * commissionPercent({ commission: percent }) / 100;
+    return gross - commission;
+};
+
+const yesterdayKey = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return dayKey(date);
+};
+
+const dayLabel = (key) => {
+    const date = new Date(key + "T12:00:00");
+    return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+};
+
+const currentPartner = (store) => {
+    return store.partners.find((partner) => partner.id === sessionStorage.getItem(PARTNER_KEY));
+};
+
+const partnerDayEarnings = (store, partner, day) => {
+    const referred = store.transactions.filter((item) => {
+        return item.status === "PAID" && partner.referral && item.referral === partner.referral && (!day || dayKey(item.date) === day);
+    });
+    const ghs = referred.filter((item) => item.country !== "ngn").reduce((total, item) => total + packageAmount(item.package), 0);
+    const ngn = referred.filter((item) => item.country === "ngn").reduce((total, item) => total + packageAmount(item.package), 0);
+    return {
+        ghs: partnerEarnings(ghs, partner.commission),
+        ngn: partnerEarnings(ngn, partner.commission)
+    };
 };
 
 const refParam = new URLSearchParams(window.location.search).get("ref");
@@ -255,19 +304,72 @@ const renderBackend = () => {
         const referredPaid = paid.filter((item) => partner.referral && item.referral === partner.referral);
         const ghs = referredPaid.filter((item) => item.country !== "ngn").reduce((total, item) => total + packageAmount(item.package), 0);
         const ngn = referredPaid.filter((item) => item.country === "ngn").reduce((total, item) => total + packageAmount(item.package), 0);
+        const ghsCell = textCell("");
+        const ngnCell = textCell("");
+        const paintEarnings = (percent) => {
+            ghsCell.textContent = "GHS " + formatAmount(partnerEarnings(ghs, percent));
+            ngnCell.textContent = "NGN " + formatAmount(partnerEarnings(ngn, percent));
+        };
+        const commission = document.createElement("input");
+        commission.type = "number";
+        commission.min = "0";
+        commission.max = "100";
+        commission.step = "0.01";
+        commission.className = "commission-input";
+        commission.value = String(commissionPercent(partner));
+        commission.setAttribute("aria-label", "Commission percent for " + partner.name);
+        const saveCommission = () => {
+            const percent = commissionPercent({ commission: commission.value });
+            commission.value = String(percent);
+            paintEarnings(percent);
+            const next = readStore();
+            const saved = next.partners.find((entry) => entry.id === partner.id) || next.partners.find((entry) => entry.email === partner.email);
+            if (!saved) {
+                return;
+            }
+            saved.commission = percent;
+            writeStore(next);
+        };
+        commission.addEventListener("input", () => {
+            paintEarnings(commission.value);
+        });
+        commission.addEventListener("change", saveCommission);
+        const commissionCell = document.createElement("td");
+        commissionCell.append(commission);
+        paintEarnings(partner.commission);
         row.append(
             stackCell(partner.name, partner.email, "member-name", "member-email"),
             textCell("Active"),
             code,
             textCell(partner.referral ? "index.html?ref=" + encodeURIComponent(partner.referral) : "—"),
-            textCell("—"),
-            textCell("GHS " + ghs),
-            textCell("NGN " + ngn),
+            commissionCell,
+            ghsCell,
+            ngnCell,
             textCell("—")
         );
         partnerBody.append(row);
     });
     document.getElementById("partners-empty").hidden = store.partners.length !== 0;
+
+    const payoutBody = document.getElementById("payout-request-body");
+    if (payoutBody) {
+        payoutBody.replaceChildren();
+        store.payouts.forEach((item) => {
+            const when = new Date(item.requestedAt);
+            const row = document.createElement("tr");
+            row.dataset.keep = "yes";
+            row.append(
+                stackCell(when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time"),
+                stackCell(item.partnerName || "—", item.partnerEmail || "", "member-name", "member-email"),
+                textCell(dayLabel(item.day)),
+                textCell("GHS " + formatAmount(item.ghs)),
+                textCell("NGN " + formatAmount(item.ngn)),
+                textCell("Requested")
+            );
+            payoutBody.append(row);
+        });
+        document.getElementById("payouts-empty").hidden = store.payouts.length !== 0;
+    }
     ["member-search", "transaction-search", "partner-search"].forEach((id) => {
         const input = document.getElementById(id);
         if (input && input.value) {
@@ -283,7 +385,8 @@ if (adminNav) {
         overview: document.getElementById("panel-overview"),
         members: document.getElementById("panel-members"),
         transactions: document.getElementById("panel-transactions"),
-        partners: document.getElementById("panel-partners")
+        partners: document.getElementById("panel-partners"),
+        payouts: document.getElementById("panel-payouts")
     };
 
     const openPanel = (name) => {
@@ -315,6 +418,9 @@ const filterRows = (input, panelId, emptyId) => {
     const rows = document.querySelectorAll("#" + panelId + " .members tbody tr");
     let shown = 0;
     rows.forEach((row) => {
+        if (row.dataset.keep === "yes") {
+            return;
+        }
         const match = (row.dataset.search || "").includes(query);
         row.hidden = !match;
         if (match) {
@@ -348,6 +454,7 @@ if (addPartnerForm) {
         const email = String(data.get("email")).trim();
         const password = String(data.get("password"));
         const referral = String(data.get("referral")).trim();
+        const commission = commissionPercent({ commission: data.get("commission") });
         if (!password) {
             return;
         }
@@ -356,7 +463,9 @@ if (addPartnerForm) {
             id: Date.now().toString(36),
             name,
             email,
-            referral
+            password,
+            referral,
+            commission
         });
         writeStore(store);
         addPartnerForm.reset();
@@ -392,6 +501,26 @@ if (partnerTabs.length) {
     const partnerJoin = partnerForms.join;
     partnerSignIn.addEventListener("submit", (event) => {
         event.preventDefault();
+        const data = new FormData(partnerSignIn);
+        const email = String(data.get("email")).trim().toLowerCase();
+        const password = String(data.get("password"));
+        const store = readStore();
+        const partner = store.partners.find((item) => item.email.toLowerCase() === email);
+        const error = document.getElementById("partner-sign-in-error");
+        if (!partner || (partner.password && partner.password !== password)) {
+            if (error) {
+                error.hidden = false;
+            }
+            return;
+        }
+        if (!partner.password) {
+            partner.password = password;
+            writeStore(store);
+        }
+        if (error) {
+            error.hidden = true;
+        }
+        sessionStorage.setItem(PARTNER_KEY, partner.id);
         goTo("partner.html");
     });
     partnerJoin.addEventListener("submit", (event) => {
@@ -410,7 +539,8 @@ if (partnerDashNav) {
     const dashButtons = partnerDashNav.querySelectorAll("[data-partner-panel]");
     const dashPanels = {
         overview: document.getElementById("partner-panel-overview"),
-        referrals: document.getElementById("partner-panel-referrals")
+        referrals: document.getElementById("partner-panel-referrals"),
+        payout: document.getElementById("partner-panel-payout")
     };
     const openDash = (name) => {
         if (!dashPanels[name]) {
@@ -432,6 +562,91 @@ if (partnerDashNav) {
     if (dashPanels[dashStart]) {
         openDash(dashStart);
     }
+}
+
+const renderPartnerPayout = () => {
+    const request = document.getElementById("payout-request");
+    const ghsNode = document.getElementById("payout-ghs");
+    const ngnNode = document.getElementById("payout-ngn");
+    if (!request || !ghsNode || !ngnNode) {
+        return;
+    }
+    const dayNode = document.getElementById("payout-day");
+    const note = document.getElementById("payout-note");
+    const signedOut = document.getElementById("payout-signed-out");
+    const amounts = document.getElementById("payout-amounts");
+    const store = readStore();
+    const partner = currentPartner(store);
+    const day = yesterdayKey();
+    dayNode.textContent = dayLabel(day);
+    if (!partner) {
+        signedOut.hidden = false;
+        amounts.hidden = true;
+        request.hidden = true;
+        note.textContent = "";
+        return;
+    }
+    signedOut.hidden = true;
+    amounts.hidden = false;
+    request.hidden = false;
+    const existing = store.payouts.find((item) => item.partnerId === partner.id && item.day === day);
+    const earned = existing || partnerDayEarnings(store, partner, day);
+    ghsNode.textContent = "GHS " + formatAmount(earned.ghs);
+    ngnNode.textContent = "NGN " + formatAmount(earned.ngn);
+    if (existing) {
+        request.disabled = true;
+        request.textContent = "Requested";
+        note.textContent = "This payout is with the admin.";
+        return;
+    }
+    const empty = earned.ghs <= 0 && earned.ngn <= 0;
+    request.disabled = empty;
+    request.textContent = "Request payout";
+    note.textContent = empty ? "No earnings for yesterday." : "This is yesterday's earnings after commission.";
+};
+
+const payoutRequest = document.getElementById("payout-request");
+if (payoutRequest) {
+    payoutRequest.addEventListener("click", () => {
+        const store = readStore();
+        const partner = currentPartner(store);
+        if (!partner) {
+            return;
+        }
+        const day = yesterdayKey();
+        if (store.payouts.some((item) => item.partnerId === partner.id && item.day === day)) {
+            renderPartnerPayout();
+            return;
+        }
+        const earned = partnerDayEarnings(store, partner, day);
+        if (earned.ghs <= 0 && earned.ngn <= 0) {
+            renderPartnerPayout();
+            return;
+        }
+        store.payouts.unshift({
+            id: Date.now().toString(36),
+            partnerId: partner.id,
+            partnerName: partner.name,
+            partnerEmail: partner.email,
+            day,
+            ghs: earned.ghs,
+            ngn: earned.ngn,
+            status: "REQUESTED",
+            requestedAt: new Date().toISOString()
+        });
+        writeStore(store);
+        renderPartnerPayout();
+    });
+    renderPartnerPayout();
+}
+
+const partnerSignOut = document.getElementById("partner-sign-out");
+if (partnerSignOut) {
+    partnerSignOut.addEventListener("click", (event) => {
+        event.preventDefault();
+        sessionStorage.removeItem(PARTNER_KEY);
+        goTo("partnerlogs.html");
+    });
 }
 
 const referralSearch = document.getElementById("referral-search");
