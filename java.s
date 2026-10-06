@@ -392,6 +392,32 @@ const referralLink = (code) => {
     return url.href;
 };
 
+const copyText = (value, button, label) => {
+    const done = () => {
+        button.textContent = "Copied";
+        window.setTimeout(() => {
+            button.textContent = label;
+        }, 1500);
+    };
+    const fallback = () => {
+        const area = document.createElement("textarea");
+        area.value = value;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.left = "-9999px";
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+        done();
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(value).then(done).catch(fallback);
+        return;
+    }
+    fallback();
+};
+
 const refParam = new URLSearchParams(window.location.search).get("ref");
 if (refParam) {
     sessionStorage.setItem(REF_KEY, refParam.trim());
@@ -693,11 +719,31 @@ const renderBackend = () => {
             renderBackend();
         });
         action.append(remove);
+        const linkCell = document.createElement("td");
+        if (partner.referral) {
+            const link = referralLink(partner.referral);
+            const wrap = document.createElement("div");
+            wrap.className = "referral-copy";
+            const url = document.createElement("span");
+            url.className = "referral-url";
+            url.textContent = link;
+            const copy = document.createElement("button");
+            copy.type = "button";
+            copy.className = "copy";
+            copy.textContent = "Copy link";
+            copy.addEventListener("click", () => {
+                copyText(link, copy, "Copy link");
+            });
+            wrap.append(url, copy);
+            linkCell.append(wrap);
+        } else {
+            linkCell.textContent = "—";
+        }
         row.append(
             stackCell(partner.name, partner.email, "member-name", "member-email"),
             textCell("Active"),
             code,
-            textCell(partner.referral ? referralLink(partner.referral) : "—"),
+            linkCell,
             commissionCell,
             ghsCell,
             ngnCell,
@@ -1197,29 +1243,7 @@ if (partnerDashNav) {
             linkNode.textContent = link;
             copyReferral.hidden = false;
             copyReferral.addEventListener("click", () => {
-                const done = () => {
-                    copyReferral.textContent = "Copied";
-                    window.setTimeout(() => {
-                        copyReferral.textContent = "Copy link";
-                    }, 1500);
-                };
-                const fallback = () => {
-                    const area = document.createElement("textarea");
-                    area.value = link;
-                    area.setAttribute("readonly", "");
-                    area.style.position = "fixed";
-                    area.style.left = "-9999px";
-                    document.body.appendChild(area);
-                    area.select();
-                    document.execCommand("copy");
-                    area.remove();
-                    done();
-                };
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(link).then(done).catch(fallback);
-                    return;
-                }
-                fallback();
+                copyText(link, copyReferral, "Copy link");
             });
         }
     }
