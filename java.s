@@ -362,24 +362,27 @@ const pageBackHref = () => {
     return targets[file] || "";
 };
 
-const pageBack = document.createElement("a");
-pageBack.className = "page-back";
-pageBack.textContent = "Back";
-const pageBackTarget = pageBackHref();
-if (pageBackTarget) {
-    pageBack.href = pageBackTarget;
-    pageBack.addEventListener("click", (event) => {
-        event.preventDefault();
-        goTo(pageBackTarget);
-    });
-} else {
-    pageBack.href = "index.html";
-    pageBack.addEventListener("click", (event) => {
-        event.preventDefault();
-        window.history.back();
-    });
+const pageFile = window.location.pathname.split("/").pop() || "index.html";
+if (pageFile !== "index.html") {
+    const pageBack = document.createElement("a");
+    pageBack.className = "page-back";
+    pageBack.textContent = "Back";
+    const pageBackTarget = pageBackHref();
+    if (pageBackTarget) {
+        pageBack.href = pageBackTarget;
+        pageBack.addEventListener("click", (event) => {
+            event.preventDefault();
+            goTo(pageBackTarget);
+        });
+    } else {
+        pageBack.href = "index.html";
+        pageBack.addEventListener("click", (event) => {
+            event.preventDefault();
+            window.history.back();
+        });
+    }
+    document.body.prepend(pageBack);
 }
-document.body.prepend(pageBack);
 const LIVE_URL = "https://baker-king-acre-ivory.grok.me";
 const LIVE_WINDOW = "casino-live";
 
