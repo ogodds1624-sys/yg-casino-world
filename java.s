@@ -39,6 +39,61 @@ const currentMember = (store) => {
     return store.members.find((member) => member.id === sessionStorage.getItem(MEMBER_KEY));
 };
 
+const packagePage = (country) => country === "ngn" ? "packageN.html" : "plist.html";
+
+const isRegistered = (member) => Boolean(member && member.phone);
+
+const hasCountry = (member) => Boolean(member && (member.country === "gh" || member.country === "ngn"));
+
+const nextStep = (member) => {
+    if (!hasCountry(member)) {
+        return "country.html";
+    }
+    return isRegistered(member) ? packagePage(member.country) : "connecting.html?country=" + member.country;
+};
+
+const homeAccount = document.getElementById("home-account");
+if (homeAccount && new URLSearchParams(window.location.search).get("account") === "test") {
+    const store = readStore();
+    let testMember = store.members.find((item) => item.email.toLowerCase() === "ama.mensah@example.com");
+    if (!testMember) {
+        testMember = {
+            id: "test-ama",
+            name: "Ama Mensah",
+            email: "ama.mensah@example.com",
+            joined: new Date().toISOString(),
+            phone: "+233 24 123 4567",
+            country: "gh",
+            status: "UNPAID",
+            referredBy: ""
+        };
+        store.members.unshift(testMember);
+        writeStore(store);
+    }
+    sessionStorage.setItem(MEMBER_KEY, testMember.id);
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete("account");
+    window.history.replaceState(null, "", clean.pathname + clean.search + clean.hash);
+}
+if (homeAccount) {
+    const member = currentMember(readStore());
+    if (member) {
+        const name = document.createElement("span");
+        name.className = "header-name";
+        name.textContent = member.name;
+        name.title = member.name;
+        const signOut = document.createElement("button");
+        signOut.type = "button";
+        signOut.className = "button";
+        signOut.textContent = "Sign out";
+        signOut.addEventListener("click", () => {
+            sessionStorage.removeItem(MEMBER_KEY);
+            goTo("index.html");
+        });
+        homeAccount.replaceChildren(name, signOut);
+    }
+}
+
 const dayKey = (value) => {
     const date = new Date(value);
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -407,7 +462,7 @@ if (loginForm) {
         if (member) {
             sessionStorage.setItem(MEMBER_KEY, member.id);
         }
-        goTo("country.html");
+        goTo(member ? nextStep(member) : "country.html");
     });
 }
 
@@ -437,7 +492,7 @@ if (signupForm) {
         }
         writeStore(store);
         sessionStorage.setItem(MEMBER_KEY, member.id);
-        goTo("country.html");
+        goTo(nextStep(member));
     });
 }
 
@@ -499,6 +554,86 @@ if (receipt && receiptTitle && receiptZone) {
         showFile();
     });
 }
+
+const PRICE_KEY = "casino-world-prices";
+const defaultPrices = {
+    gh: [355, 455, 555],
+    ngn: [42472.2, 54436.2, 66400.2],
+    mins: [3, 5, 7]
+};
+
+const readPrices = () => {
+    const fallback = {
+        gh: defaultPrices.gh.slice(),
+        ngn: defaultPrices.ngn.slice(),
+        mins: defaultPrices.mins.slice()
+    };
+    try {
+        const saved = JSON.parse(localStorage.getItem(PRICE_KEY));
+        if (saved && Array.isArray(saved.gh) && saved.gh.length === 3 && Array.isArray(saved.ngn) && saved.ngn.length === 3) {
+            return {
+                gh: saved.gh.map(Number),
+                ngn: saved.ngn.map(Number),
+                mins: Array.isArray(saved.mins) && saved.mins.length === 3 ? saved.mins.map(Number) : fallback.mins
+            };
+        }
+    } catch (error) {
+        return fallback;
+    }
+    return fallback;
+};
+
+const sessionLabel = (minutes) => {
+    const value = Number(minutes);
+    return value + " min" + (value === 1 ? "" : "s") + " per session";
+};
+
+const formatPrice = (amount, country) => {
+    const value = Number(amount);
+    if (country === "ngn") {
+        return "₦" + value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const digits = Number.isInteger(value) ? 0 : 2;
+    return "GHS " + value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+};
+
+const applyPrices = () => {
+    const nodes = document.querySelectorAll("[data-package]");
+    if (!nodes.length) {
+        return;
+    }
+    const prices = readPrices();
+    const ngnPage = document.body.dataset.market === "ngn" || new URLSearchParams(window.location.search).get("pay") === "ngn";
+    const country = ngnPage ? "ngn" : "gh";
+    nodes.forEach((node) => {
+        const index = Number(node.dataset.package) - 1;
+        if (!prices[country][index] && prices[country][index] !== 0) {
+            return;
+        }
+        const label = formatPrice(prices[country][index], country);
+        const price = node.querySelector(".price");
+        if (price) {
+            price.textContent = label;
+        }
+        const link = node.querySelector("a.button");
+        if (link) {
+            link.textContent = "Get " + label;
+        }
+        const amount = node.querySelector(".amount");
+        if (amount) {
+            amount.textContent = label;
+        }
+        const desc = node.querySelector(".desc");
+        if (desc && prices.mins[index]) {
+            desc.textContent = sessionLabel(prices.mins[index]);
+        }
+        node.querySelectorAll(".green").forEach((green) => {
+            if (/GHS|₦/.test(green.textContent)) {
+                green.textContent = label;
+            }
+        });
+    });
+};
 
 const GATEWAY_KEY = "casino-world-gateways";
 const gatewayGroups = {
@@ -581,19 +716,13 @@ if (paymentForm) {
         }
     });
     if (payNgn) {
-        const naira = (ghs) => {
-            const amount = Math.round(Number(ghs) * 119.64 * 100) / 100;
-            return "₦" + amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        };
-        document.querySelectorAll(".amount, .green").forEach((node) => {
-            node.textContent = node.textContent.replace(/GHS\s+(\d+)/, (full, ghs) => naira(ghs));
-        });
         const close = document.querySelector(".momo-top a");
         if (close) {
             close.href = "packageN.html";
         }
         paymentForm.action = "packageN.html";
     }
+    applyPrices();
     const packageLabel = document.querySelector(".amount").textContent.trim();
     const statusNote = document.createElement("p");
     statusNote.id = "payment-status";
@@ -636,8 +765,22 @@ if (paymentForm) {
         writeStore(store);
         showPaymentState();
     });
-    window.addEventListener("storage", showPaymentState);
+    window.addEventListener("storage", (event) => {
+        if (event.key === PRICE_KEY) {
+            applyPrices();
+        }
+        showPaymentState();
+    });
     showPaymentState();
+}
+
+if (!paymentForm) {
+    applyPrices();
+    window.addEventListener("storage", (event) => {
+        if (event.key === PRICE_KEY) {
+            applyPrices();
+        }
+    });
 }
 
 const connectForm = document.getElementById("connect-form");
@@ -647,40 +790,59 @@ if (connectForm) {
         gh: { dial: "+233", placeholder: "24 123 4567", flag: "flag-gh" }
     };
     const chosen = new URLSearchParams(window.location.search).get("country");
-    const country = countries[chosen] ? chosen : "ngn";
-    const details = countries[country];
-
-    document.getElementById("country").value = country;
-    document.getElementById("dial-label").textContent = details.dial;
-    document.getElementById("phone").placeholder = details.placeholder;
-    document.getElementById("flag-ngn").hidden = details.flag !== "flag-ngn";
-    document.getElementById("flag-gh").hidden = details.flag !== "flag-gh";
-    connectForm.action = country === "ngn" ? "packageN.html" : "plist.html";
-
-    connectForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const store = readStore();
-        const member = currentMember(store);
-        if (member) {
-            member.country = country;
-            member.phone = details.dial + " " + String(new FormData(connectForm).get("phone")).trim();
-            writeStore(store);
+    const store = readStore();
+    const member = currentMember(store);
+    const country = hasCountry(member) ? member.country : (countries[chosen] ? chosen : "ngn");
+    if (isRegistered(member)) {
+        const card = connectForm.closest(".connect-card");
+        if (card) {
+            card.hidden = true;
         }
-        goTo(connectForm.action);
-    });
+        goTo(packagePage(country));
+    } else {
+        const details = countries[country];
+        document.getElementById("country").value = country;
+        document.getElementById("dial-label").textContent = details.dial;
+        document.getElementById("phone").placeholder = details.placeholder;
+        document.getElementById("flag-ngn").hidden = details.flag !== "flag-ngn";
+        document.getElementById("flag-gh").hidden = details.flag !== "flag-gh";
+        connectForm.action = packagePage(country);
+
+        connectForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const nextStore = readStore();
+            const nextMember = currentMember(nextStore);
+            if (nextMember) {
+                nextMember.country = country;
+                nextMember.phone = details.dial + " " + String(new FormData(connectForm).get("phone")).trim();
+                writeStore(nextStore);
+            }
+            goTo(connectForm.action);
+        });
+    }
 }
 
 const countryForm = document.querySelector('form[action="connecting.html"]');
 if (countryForm) {
-    countryForm.addEventListener("submit", (event) => {
-        const chosenCountry = event.submitter ? event.submitter.value : "";
-        const store = readStore();
-        const member = currentMember(store);
-        if (member && (chosenCountry === "gh" || chosenCountry === "ngn")) {
-            member.country = chosenCountry;
-            writeStore(store);
+    const store = readStore();
+    const member = currentMember(store);
+    if (hasCountry(member)) {
+        const card = countryForm.closest(".country-pick");
+        if (card) {
+            card.hidden = true;
         }
-    });
+        goTo(nextStep(member));
+    } else {
+        countryForm.addEventListener("submit", (event) => {
+            const chosenCountry = event.submitter ? event.submitter.value : "";
+            const nextStore = readStore();
+            const nextMember = currentMember(nextStore);
+            if (nextMember && !nextMember.country && (chosenCountry === "gh" || chosenCountry === "ngn")) {
+                nextMember.country = chosenCountry;
+                writeStore(nextStore);
+            }
+        });
+    }
 }
 
 const adminRefresh = document.getElementById("admin-refresh");
@@ -757,8 +919,37 @@ if (adminLock) {
                 });
             });
             localStorage.setItem(GATEWAY_KEY, JSON.stringify(next));
+            const prices = readPrices();
+            ["gh", "ngn"].forEach((country) => {
+                prices[country] = prices[country].map((current, index) => {
+                    const input = document.getElementById("price-" + country + "-" + (index + 1));
+                    const value = input ? Number(String(input.value).replace(/,/g, "")) : current;
+                    return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : current;
+                });
+            });
+            prices.mins = (prices.mins || defaultPrices.mins.slice()).map((current, index) => {
+                const input = document.getElementById("time-" + (index + 1));
+                const value = input ? Number(String(input.value).replace(/,/g, "")) : current;
+                return Number.isFinite(value) && value > 0 ? Math.round(value) : current;
+            });
+            localStorage.setItem(PRICE_KEY, JSON.stringify(prices));
             const note = document.getElementById("gateway-saved");
             note.hidden = false;
+        });
+        const savedPrices = readPrices();
+        ["gh", "ngn"].forEach((country) => {
+            savedPrices[country].forEach((amount, index) => {
+                const input = document.getElementById("price-" + country + "-" + (index + 1));
+                if (input) {
+                    input.value = String(amount);
+                }
+            });
+        });
+        savedPrices.mins.forEach((minutes, index) => {
+            const input = document.getElementById("time-" + (index + 1));
+            if (input) {
+                input.value = String(minutes);
+            }
         });
     }
 }

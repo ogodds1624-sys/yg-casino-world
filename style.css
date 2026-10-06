@@ -81,6 +81,17 @@ body > hr {
     align-items: center;
     gap: 8px;
     margin-left: auto;
+    min-width: 0;
+}
+
+.header-name {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--gold);
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 button,
@@ -716,6 +727,7 @@ body > button {
 }
 
 .home .header a.button,
+.home .header button.button,
 .home .actions a.button,
 .home > button {
     border-radius: 999px;
@@ -723,10 +735,17 @@ body > button {
     text-transform: uppercase;
 }
 
-.home .header a.button {
+.home .header a.button,
+.home .header button.button {
     min-height: 40px;
     padding: 0 18px;
     font-size: 0.78rem;
+}
+
+.home .header button.button {
+    border-color: var(--gold);
+    background: var(--gold);
+    color: #17150f;
 }
 
 .home .actions {
@@ -755,6 +774,7 @@ body > button {
 }
 
 .home .header a.button:hover,
+.home .header button.button:hover,
 .home .actions a.button:hover,
 .home > button:hover {
     background: var(--gold);
@@ -1078,10 +1098,16 @@ button.copy:hover {
         flex: 0 0 auto;
     }
 
-    .home .header a.button {
+    .home .header a.button,
+    .home .header button.button {
         min-height: 36px;
         padding: 0 10px;
         font-size: 0.68rem;
+    }
+
+    .header-name {
+        max-width: 9rem;
+        font-size: 0.78rem;
     }
 
     .header a.button {
@@ -1498,6 +1524,10 @@ button.copy:hover {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
+}
+
+.settings-prices {
+    grid-column: 1 / -1;
 }
 
 .settings-card p {
