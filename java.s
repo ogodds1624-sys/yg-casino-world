@@ -42,8 +42,58 @@ window.addEventListener("pageshow", () => {
     document.body.classList.remove("is-leaving");
 });
 
+const rememberMember = (id) => {
+    try {
+        localStorage.setItem(MEMBER_KEY, id);
+        localStorage.removeItem("casino-world-signed-out");
+    } catch (error) {
+        // Private mode can block storage.
+    }
+    sessionStorage.setItem(MEMBER_KEY, id);
+};
+
+const forgetMember = () => {
+    try {
+        localStorage.removeItem(MEMBER_KEY);
+        localStorage.setItem("casino-world-signed-out", "yes");
+    } catch (error) {
+        // Private mode can block storage.
+    }
+    sessionStorage.removeItem(MEMBER_KEY);
+};
+
+const savedMemberId = () => {
+    try {
+        return localStorage.getItem(MEMBER_KEY) || sessionStorage.getItem(MEMBER_KEY) || "";
+    } catch (error) {
+        return sessionStorage.getItem(MEMBER_KEY) || "";
+    }
+};
+
 const currentMember = (store) => {
-    return store.members.find((member) => member.id === sessionStorage.getItem(MEMBER_KEY));
+    let id = savedMemberId();
+    if (!id) {
+        let signedOut = false;
+        try {
+            signedOut = localStorage.getItem("casino-world-signed-out") === "yes";
+        } catch (error) {
+            signedOut = false;
+        }
+        const registered = signedOut ? [] : store.members.filter((member) => member && member.phone);
+        if (registered.length === 1) {
+            id = registered[0].id;
+        }
+    }
+    if (!id) {
+        return undefined;
+    }
+    const member = store.members.find((item) => item.id === id);
+    if (!member) {
+        forgetMember();
+        return undefined;
+    }
+    rememberMember(member.id);
+    return member;
 };
 
 const packagePage = (country) => country === "ngn" ? "packageN.html" : "plist.html";
@@ -68,6 +118,9 @@ const pageBackHref = () => {
         "partnerlogs.html": "index.html",
         "session.html": packages
     };
+    if ((file === "plist.html" || file === "packageN.html") && currentMember(readStore())) {
+        return "index.html";
+    }
     return targets[file] || "";
 };
 
@@ -197,7 +250,7 @@ if (homeAccount && new URLSearchParams(window.location.search).get("account") ==
         store.members.unshift(testMember);
         writeStore(store);
     }
-    sessionStorage.setItem(MEMBER_KEY, testMember.id);
+    rememberMember(testMember.id);
     const clean = new URL(window.location.href);
     clean.searchParams.delete("account");
     window.history.replaceState(null, "", clean.pathname + clean.search + clean.hash);
@@ -214,10 +267,23 @@ if (homeAccount) {
         signOut.className = "button";
         signOut.textContent = "Sign out";
         signOut.addEventListener("click", () => {
-            sessionStorage.removeItem(MEMBER_KEY);
+            forgetMember();
             goTo("index.html");
         });
         homeAccount.replaceChildren(name, signOut);
+        const destination = nextStep(member);
+        document.querySelectorAll(".actions a.button").forEach((link) => {
+            const href = link.getAttribute("href");
+            if (href === "signup.html" || href === "login.html") {
+                link.href = destination;
+            }
+        });
+        document.querySelectorAll(".footer-nav a").forEach((link) => {
+            const href = link.getAttribute("href");
+            if (href === "signup.html" || href === "login.html") {
+                link.hidden = true;
+            }
+        });
     }
 }
 
@@ -1265,13 +1331,17 @@ if (referralSearch) {
 
 const loginForm = document.getElementById("login-form");
 if (loginForm) {
+    const signedIn = currentMember(readStore());
+    if (signedIn) {
+        window.location.replace(nextStep(signedIn));
+    }
     loginForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const email = String(new FormData(loginForm).get("email")).trim().toLowerCase();
         const store = readStore();
         const member = store.members.find((item) => item.email.toLowerCase() === email);
         if (member) {
-            sessionStorage.setItem(MEMBER_KEY, member.id);
+            rememberMember(member.id);
         }
         goTo(member ? nextStep(member) : "country.html");
     });
@@ -1279,6 +1349,10 @@ if (loginForm) {
 
 const signupForm = document.getElementById("signup-form");
 if (signupForm) {
+    const signedIn = currentMember(readStore());
+    if (signedIn) {
+        window.location.replace(nextStep(signedIn));
+    }
     signupForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const data = new FormData(signupForm);
@@ -1311,7 +1385,7 @@ if (signupForm) {
             }
         }
         writeStore(store);
-        sessionStorage.setItem(MEMBER_KEY, member.id);
+        rememberMember(member.id);
         goTo(nextStep(member));
     });
 }
