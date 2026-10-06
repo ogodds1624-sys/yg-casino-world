@@ -318,7 +318,22 @@ const renderBackend = () => {
         commission.className = "commission-input";
         commission.value = String(commissionPercent(partner));
         commission.setAttribute("aria-label", "Commission percent for " + partner.name);
-        const saveCommission = () => {
+        const saveCommission = document.createElement("button");
+        saveCommission.type = "button";
+        saveCommission.className = "copy";
+        saveCommission.textContent = partner.commissionLocked ? "Saved" : "Save";
+        const lockCommission = (locked) => {
+            commission.disabled = locked;
+            saveCommission.disabled = locked;
+            saveCommission.textContent = locked ? "Saved" : "Save";
+        };
+        lockCommission(Boolean(partner.commissionLocked));
+        commission.addEventListener("input", () => {
+            if (!commission.disabled) {
+                paintEarnings(commission.value);
+            }
+        });
+        saveCommission.addEventListener("click", () => {
             const percent = commissionPercent({ commission: commission.value });
             commission.value = String(percent);
             paintEarnings(percent);
@@ -328,15 +343,35 @@ const renderBackend = () => {
                 return;
             }
             saved.commission = percent;
+            saved.commissionLocked = true;
             writeStore(next);
-        };
-        commission.addEventListener("input", () => {
-            paintEarnings(commission.value);
+            lockCommission(true);
         });
-        commission.addEventListener("change", saveCommission);
         const commissionCell = document.createElement("td");
-        commissionCell.append(commission);
+        const commissionWrap = document.createElement("div");
+        commissionWrap.className = "commission-lock";
+        commissionWrap.append(commission, saveCommission);
+        commissionCell.append(commissionWrap);
         paintEarnings(partner.commission);
+        const action = document.createElement("td");
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "copy is-delete";
+        remove.textContent = "Delete";
+        remove.addEventListener("click", () => {
+            const next = readStore();
+            const index = next.partners.findIndex((entry) => entry.id ? entry.id === partner.id : entry.email === partner.email);
+            if (index < 0) {
+                return;
+            }
+            const removed = next.partners.splice(index, 1)[0];
+            writeStore(next);
+            if (sessionStorage.getItem(PARTNER_KEY) === removed.id) {
+                sessionStorage.removeItem(PARTNER_KEY);
+            }
+            renderBackend();
+        });
+        action.append(remove);
         row.append(
             stackCell(partner.name, partner.email, "member-name", "member-email"),
             textCell("Active"),
@@ -345,7 +380,7 @@ const renderBackend = () => {
             commissionCell,
             ghsCell,
             ngnCell,
-            textCell("—")
+            action
         );
         partnerBody.append(row);
     });

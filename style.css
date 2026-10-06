@@ -998,6 +998,16 @@ button.copy:hover {
     background: rgba(232, 189, 98, 0.12);
 }
 
+button.copy.is-delete {
+    margin-left: 0;
+    border-color: #e24b4b;
+    color: #e24b4b;
+}
+
+button.copy.is-delete:hover {
+    background: rgba(226, 75, 75, 0.12);
+}
+
 .steps {
     margin-top: 20px;
     line-height: 1.6;
@@ -1804,6 +1814,20 @@ button:disabled:hover {
 .commission-input:focus {
     border-color: var(--gold);
     outline: 2px solid rgba(232, 189, 98, 0.35);
+}
+
+.commission-lock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.commission-lock button.copy {
+    margin-left: 0;
+}
+
+.commission-input:disabled {
+    opacity: 0.55;
 }
 
 .members-empty {
