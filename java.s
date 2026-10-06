@@ -27,6 +27,7 @@ let baseRev = 0;
 let baseDoc = null;
 let pushChain = Promise.resolve();
 let pushing = false;
+let pendingLive = null;
 
 const cloneDoc = (value) => JSON.parse(JSON.stringify(value));
 
@@ -147,10 +148,12 @@ const sendPush = async () => {
                 prices: readPrices(),
                 gateways: readGateways()
             };
+            const body = JSON.stringify(payload);
             const response = await fetch(DB_URL, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body,
+                keepalive: body.length <= 60000
             });
             if (response.status === 409) {
                 const remote = await response.json();
@@ -169,31 +172,46 @@ const sendPush = async () => {
             if (!response.ok) {
                 return;
             }
-            applyDoc(await response.json(), false);
+            const saved = await response.json();
+            const arrived = JSON.stringify(saved.store) !== JSON.stringify(payload.store);
+            applyDoc(saved, arrived);
             return;
         }
     } catch (error) {
         // Keep the local copy and try again on the next save or refresh.
     } finally {
         pushing = false;
+        const next = pendingLive;
+        pendingLive = null;
+        if (next && Number(next.rev) > baseRev) {
+            applyDoc(next, true);
+        }
     }
 };
 
 const queueSharedPush = () => {
     pushChain = pushChain.then(() => sendPush()).catch(() => {});
+    return pushChain;
 };
 
 const writeStore = (store) => {
     localStorage.setItem(STORE_KEY, JSON.stringify(store));
     queueSharedPush();
+    return pushChain;
 };
 
-const pullSharedDb = async () => {
+const pullSharedDb = async (attempt = 0) => {
+    await pushChain;
+    const stamp = localStorage.getItem(STORE_KEY);
     const response = await fetch(DB_URL, { cache: "no-store" });
     if (!response.ok) {
         throw new Error("database");
     }
     const remote = await response.json();
+    if (attempt < 2 && (pushing || localStorage.getItem(STORE_KEY) !== stamp)) {
+        await pushChain;
+        return pullSharedDb(attempt + 1);
+    }
     const local = readStore();
     const count = (store) => (store.members || []).length + (store.transactions || []).length + (store.partners || []).length + (store.payouts || []).length + (store.applications || []).length;
     if (Number(remote.rev) === 0 && count(local) > 0 && count(remote.store || {}) === 0) {
@@ -225,12 +243,16 @@ const startSharedDb = () => {
     if (window.EventSource) {
         const source = new EventSource(DB_URL + "/stream");
         source.onmessage = (event) => {
-            if (pushing) {
-                return;
-            }
             try {
                 const next = JSON.parse(event.data);
-                if (!next || Number(next.rev) <= baseRev) {
+                if (!next) {
+                    return;
+                }
+                if (pushing) {
+                    pendingLive = next;
+                    return;
+                }
+                if (Number(next.rev) <= baseRev) {
                     return;
                 }
                 applyDoc(next, true);
@@ -1205,7 +1227,7 @@ if (partnerTabs.length) {
     });
     const partnerSignIn = partnerForms["sign-in"];
     const partnerJoin = partnerForms.join;
-    partnerSignIn.addEventListener("submit", (event) => {
+    partnerSignIn.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(partnerSignIn);
         const email = String(data.get("email")).trim().toLowerCase();
@@ -1229,7 +1251,7 @@ if (partnerTabs.length) {
         }
         if (!partner.password) {
             partner.password = password;
-            writeStore(store);
+            await writeStore(store);
         }
         if (error) {
             error.hidden = true;
@@ -1237,7 +1259,7 @@ if (partnerTabs.length) {
         sessionStorage.setItem(PARTNER_KEY, partner.id);
         goTo("partner.html");
     });
-    partnerJoin.addEventListener("submit", (event) => {
+    partnerJoin.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(partnerJoin);
         const name = String(data.get("name")).trim();
@@ -1294,7 +1316,7 @@ if (partnerTabs.length) {
                 appliedAt: new Date().toISOString()
             });
         }
-        writeStore(store);
+        await writeStore(store);
         partnerJoin.reset();
         showNote("Your application was sent to the admin.", false);
         showWait();
@@ -1508,7 +1530,7 @@ const renderPartnerPayout = () => {
 
 const payoutRequest = document.getElementById("payout-request");
 if (payoutRequest) {
-    payoutRequest.addEventListener("click", () => {
+    payoutRequest.addEventListener("click", async () => {
         const store = readStore();
         const partner = currentPartner(store);
         if (!partner) {
@@ -1535,7 +1557,7 @@ if (payoutRequest) {
             status: "REQUESTED",
             requestedAt: new Date().toISOString()
         });
-        writeStore(store);
+        await writeStore(store);
         renderPartnerPayout();
     });
     renderPartnerPayout();
@@ -1587,7 +1609,7 @@ if (loginForm) {
     if (signedIn) {
         window.location.replace(nextStep(signedIn));
     }
-    loginForm.addEventListener("submit", (event) => {
+    loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(loginForm);
         const email = String(data.get("email")).trim().toLowerCase();
@@ -1603,7 +1625,7 @@ if (loginForm) {
         }
         if (!member.password) {
             member.password = password;
-            writeStore(store);
+            await writeStore(store);
         }
         if (error) {
             error.hidden = true;
@@ -1619,8 +1641,12 @@ if (signupForm) {
     if (signedIn) {
         window.location.replace(nextStep(signedIn));
     }
-    signupForm.addEventListener("submit", (event) => {
+    signupForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        const submitButton = signupForm.querySelector("button");
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
         const data = new FormData(signupForm);
         const name = String(data.get("full-name")).trim();
         const email = String(data.get("email")).trim();
@@ -1653,7 +1679,7 @@ if (signupForm) {
                 member.status = "UNPAID";
             }
         }
-        writeStore(store);
+        await writeStore(store);
         rememberMember(member.id);
         goTo(nextStep(member));
     });
@@ -2062,7 +2088,7 @@ if (paymentForm) {
         showWaiting();
         statusNote.hidden = false;
         statusNote.textContent = "Waiting for admin confirmation.";
-        readScreenshot(proofFile).then((proofImage) => {
+        readScreenshot(proofFile).then(async (proofImage) => {
             const store = readStore();
             const member = currentMember(store);
             const packageNode = document.querySelector("[data-package]");
@@ -2083,7 +2109,7 @@ if (paymentForm) {
             };
             store.transactions.unshift(record);
             try {
-                writeStore(store);
+                await writeStore(store);
             } catch (error) {
                 store.transactions.shift();
                 sending = false;
@@ -2141,14 +2167,14 @@ if (connectForm) {
         document.getElementById("flag-gh").hidden = details.flag !== "flag-gh";
         connectForm.action = packagePage(country);
 
-        connectForm.addEventListener("submit", (event) => {
+        connectForm.addEventListener("submit", async (event) => {
             event.preventDefault();
             const nextStore = readStore();
             const nextMember = currentMember(nextStore);
             if (nextMember) {
                 nextMember.country = country;
                 nextMember.phone = details.dial + " " + String(new FormData(connectForm).get("phone")).trim();
-                writeStore(nextStore);
+                await writeStore(nextStore);
             }
             goTo(connectForm.action);
         });
@@ -2166,14 +2192,19 @@ if (countryForm) {
         }
         goTo(nextStep(member));
     } else {
-        countryForm.addEventListener("submit", (event) => {
+        countryForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
             const chosenCountry = event.submitter ? event.submitter.value : "";
+            if (chosenCountry !== "gh" && chosenCountry !== "ngn") {
+                return;
+            }
             const nextStore = readStore();
             const nextMember = currentMember(nextStore);
-            if (nextMember && !nextMember.country && (chosenCountry === "gh" || chosenCountry === "ngn")) {
+            if (nextMember && !nextMember.country) {
                 nextMember.country = chosenCountry;
-                writeStore(nextStore);
+                await writeStore(nextStore);
             }
+            goTo("connecting.html?country=" + chosenCountry);
         });
     }
 }
@@ -2290,6 +2321,7 @@ if (adminLock) {
         adminLock.hidden = true;
         adminHeader.hidden = false;
         adminMain.hidden = false;
+        pullSharedDb().then(() => renderBackend()).catch(() => renderBackend());
     };
     if (sessionStorage.getItem("casino-world-admin") === "open") {
         openAdmin();
@@ -2337,7 +2369,7 @@ if (adminLock) {
                 });
             });
         }
-        saveGateways.addEventListener("click", () => {
+        saveGateways.addEventListener("click", async () => {
             const next = { momo: {}, bank: {} };
             Object.entries(gatewayGroups).forEach(([group, fields]) => {
                 fields.forEach((field) => {
@@ -2360,7 +2392,7 @@ if (adminLock) {
                 return Number.isFinite(value) && value > 0 ? Math.round(value) : current;
             });
             localStorage.setItem(PRICE_KEY, JSON.stringify(prices));
-            queueSharedPush();
+            await queueSharedPush();
             const note = document.getElementById("gateway-saved");
             note.hidden = false;
         });
