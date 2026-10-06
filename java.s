@@ -355,6 +355,10 @@ const renderBackend = () => {
             const member = next.members.find((entry) => entry.email && saved.email && entry.email.toLowerCase() === saved.email.toLowerCase());
             if (member && nextStatus === "RECEIVED") {
                 member.status = "PAID";
+                const approvedAt = new Date();
+                saved.approvedAt = approvedAt.toISOString();
+                const sessionMinutes = Number(saved.minutes) || 3;
+                saved.sessionEndsAt = new Date(approvedAt.getTime() + sessionMinutes * 60000).toISOString();
             }
             writeStore(next);
             renderBackend();
@@ -1416,6 +1420,28 @@ if (paymentForm) {
     statusNote.id = "payment-status";
     statusNote.hidden = true;
     paymentForm.before(statusNote);
+    const waitPopup = document.createElement("div");
+    waitPopup.className = "wait-popup";
+    waitPopup.hidden = true;
+    waitPopup.setAttribute("role", "dialog");
+    waitPopup.setAttribute("aria-modal", "true");
+    waitPopup.setAttribute("aria-labelledby", "payment-wait-title");
+    const waitCard = document.createElement("div");
+    waitCard.className = "wait-popup-card";
+    const waitKicker = document.createElement("p");
+    waitKicker.className = "kicker";
+    waitKicker.textContent = "Waiting";
+    const waitTitle = document.createElement("h2");
+    waitTitle.id = "payment-wait-title";
+    waitTitle.textContent = "Waiting for confirmation";
+    const waitCopy = document.createElement("p");
+    waitCopy.textContent = "Your screenshot was sent. This stays here until an admin approves or rejects the payment.";
+    const waitTimer = document.createElement("p");
+    waitTimer.id = "payment-wait-timer";
+    waitTimer.hidden = true;
+    waitCard.append(waitKicker, waitTitle, waitCopy, waitTimer);
+    waitPopup.append(waitCard);
+    document.body.append(waitPopup);
     const selectedAmount = () => document.querySelector(".amount").textContent.trim();
     const payCountry = () => new URLSearchParams(window.location.search).get("pay") === "ngn" ? "ngn" : "gh";
 
@@ -1452,48 +1478,131 @@ if (paymentForm) {
         return store.transactions.find((item) => item.package === amount && item.country === country && item.email.toLowerCase() === email && item.status !== "REJECTED");
     };
 
+    const loadingMinutesFor = (sessionMinutes, packageIndex) => {
+        const known = { 3: 2, 10: 7, 15: 10 };
+        const minutes = Number(sessionMinutes);
+        if (known[minutes]) {
+            return known[minutes];
+        }
+        const byPackage = [2, 7, 10];
+        return byPackage[packageIndex] || 2;
+    };
+    let connectTimer = 0;
+    let connectTick = 0;
+    const stopConnect = () => {
+        window.clearTimeout(connectTimer);
+        window.clearInterval(connectTick);
+        connectTimer = 0;
+        connectTick = 0;
+    };
+    const showWaiting = () => {
+        stopConnect();
+        waitTimer.hidden = true;
+        waitKicker.textContent = "Waiting";
+        waitTitle.textContent = "Waiting for confirmation";
+        waitCopy.textContent = "Your screenshot was sent. This stays here until an admin approves or rejects the payment.";
+        waitPopup.hidden = false;
+    };
     const showPaymentState = () => {
         const saved = matchingPayment();
         if (!saved) {
-            paymentForm.hidden = false;
+            stopConnect();
+            waitPopup.hidden = true;
             const store = readStore();
             const member = currentMember(store);
             const email = member ? member.email.toLowerCase() : "";
             const rejected = store.transactions.find((item) => item.package === selectedAmount() && item.country === payCountry() && item.email.toLowerCase() === email && item.status === "REJECTED");
             if (rejected) {
-                statusNote.hidden = false;
-                statusNote.textContent = "Payment rejected. Submit a new screenshot.";
+                goTo(packagePage(rejected.country === "ngn" ? "ngn" : "gh"));
+                return;
             }
+            paymentForm.hidden = false;
             return;
         }
         paymentForm.hidden = true;
         statusNote.hidden = false;
-        statusNote.textContent = paymentReceived(saved) ? "Payment received." : "Waiting for admin confirmation.";
+        if (paymentReceived(saved)) {
+            const endsAt = saved.sessionEndsAt ? new Date(saved.sessionEndsAt).getTime() : 0;
+            if (endsAt && endsAt <= Date.now()) {
+                stopConnect();
+                goTo(packagePage(saved.country === "ngn" ? "ngn" : "gh"));
+                return;
+            }
+            const approvedAt = saved.approvedAt ? new Date(saved.approvedAt).getTime() : Date.now();
+            const loadMs = loadingMinutesFor(saved.minutes, saved.packageIndex) * 60000;
+            const remaining = Math.max(0, approvedAt + loadMs - Date.now());
+            waitKicker.textContent = "Connecting";
+            waitTitle.textContent = "Connecting your phone";
+            waitCopy.textContent = "We are trying to connect your phone to the server. Check your network.";
+            waitTimer.hidden = false;
+            waitPopup.hidden = false;
+            statusNote.textContent = "Payment received.";
+            const paintTimer = () => {
+                const left = Math.max(0, approvedAt + loadMs - Date.now());
+                const totalSeconds = Math.ceil(left / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                waitTimer.textContent = minutes + ":" + String(seconds).padStart(2, "0");
+            };
+            stopConnect();
+            paintTimer();
+            connectTick = window.setInterval(paintTimer, 1000);
+            connectTimer = window.setTimeout(() => {
+                window.location.href = "session.html?country=" + (saved.country === "ngn" ? "ngn" : "gh");
+            }, remaining);
+            return;
+        }
+        statusNote.textContent = "Waiting for admin confirmation.";
+        showWaiting();
     };
 
+    let sending = false;
     paymentForm.addEventListener("submit", (event) => {
         event.preventDefault();
+        if (sending) {
+            return;
+        }
         const proofFile = receipt && receipt.files ? receipt.files[0] : null;
+        if (!proofFile) {
+            return;
+        }
+        const submitButton = paymentForm.querySelector("button[type='submit']");
+        sending = true;
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+        waitPopup.hidden = false;
+        statusNote.hidden = false;
+        statusNote.textContent = "Waiting for admin confirmation.";
         readScreenshot(proofFile).then((proofImage) => {
             const store = readStore();
             const member = currentMember(store);
+            const packageNode = document.querySelector("[data-package]");
+            const packageIndex = packageNode ? Math.max(0, Number(packageNode.dataset.package) - 1) : 0;
             const record = {
                 id: Date.now().toString(36),
                 date: new Date().toISOString(),
                 name: member ? member.name : "",
                 email: member ? member.email : "",
                 package: selectedAmount(),
-                proof: proofFile ? proofFile.name : "",
+                proof: proofFile.name,
                 proofImage,
                 referral: member ? member.referredBy : (sessionStorage.getItem(REF_KEY) || ""),
                 status: "PENDING",
-                country: payCountry()
+                country: payCountry(),
+                minutes: readPrices().mins[packageIndex] || 3,
+                packageIndex
             };
             store.transactions.unshift(record);
             try {
                 writeStore(store);
             } catch (error) {
                 store.transactions.shift();
+                sending = false;
+                waitPopup.hidden = true;
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
                 statusNote.hidden = false;
                 statusNote.textContent = "That screenshot is too large. Choose a smaller image.";
                 return;
@@ -1589,6 +1698,22 @@ if (adminRefresh) {
 }
 
 renderBackend();
+
+if (document.body.dataset.sessionPage === "yes") {
+    const country = new URLSearchParams(window.location.search).get("country") === "ngn" ? "ngn" : "gh";
+    const store = readStore();
+    const member = currentMember(store);
+    const active = store.transactions.find((item) => {
+        return paymentReceived(item) && member && item.email && member.email && item.email.toLowerCase() === member.email.toLowerCase() && item.sessionEndsAt && new Date(item.sessionEndsAt).getTime() > Date.now();
+    });
+    if (!active) {
+        goTo(packagePage(country));
+    } else {
+        window.setTimeout(() => {
+            goTo(packagePage(active.country === "ngn" ? "ngn" : "gh"));
+        }, new Date(active.sessionEndsAt).getTime() - Date.now());
+    }
+}
 
 const adminLock = document.getElementById("admin-lock");
 if (adminLock) {

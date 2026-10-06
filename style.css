@@ -1343,6 +1343,19 @@ button.copy.is-delete:hover {
     min-width: 120px;
 }
 
+body[data-session-page="yes"] {
+    margin: 0;
+    background: #000;
+}
+
+.live-frame {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
 .partner-access .back-link {
     display: flex;
     width: 100%;
