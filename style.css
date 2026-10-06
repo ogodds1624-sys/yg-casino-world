@@ -1249,6 +1249,54 @@ button.copy.is-delete:hover {
     color: #e24b4b;
 }
 
+.wait-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.wait-popup[hidden] {
+    display: none;
+}
+
+.wait-popup-card {
+    width: min(100%, 380px);
+    padding: 28px 24px;
+    border: 1px solid rgba(232, 189, 98, 0.45);
+    border-radius: 12px;
+    background: #121a16;
+    text-align: center;
+}
+
+.wait-popup-card .kicker {
+    margin: 0;
+    color: var(--gold);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.wait-popup-card h2 {
+    margin: 8px 0 12px;
+    color: var(--gold);
+}
+
+.wait-popup-card p {
+    margin: 0 0 20px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.wait-popup-card button {
+    width: 100%;
+}
+
 .application-actions {
     display: flex;
     flex-wrap: wrap;

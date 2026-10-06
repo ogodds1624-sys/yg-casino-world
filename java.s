@@ -666,8 +666,20 @@ if (partnerTabs.length) {
             return;
         }
         const existing = store.applications.find((item) => item.email.toLowerCase() === email.toLowerCase());
+        const waitPopup = document.getElementById("partner-wait-popup");
+        const showWait = () => {
+            if (!waitPopup) {
+                return;
+            }
+            waitPopup.hidden = false;
+            const close = document.getElementById("partner-wait-close");
+            if (close) {
+                close.focus();
+            }
+        };
         if (existing && existing.status === "PENDING") {
             showNote("Your application is already with the admin.", true);
+            showWait();
             return;
         }
         if (existing) {
@@ -689,7 +701,25 @@ if (partnerTabs.length) {
         writeStore(store);
         partnerJoin.reset();
         showNote("Your application was sent to the admin.", false);
+        showWait();
     });
+    const waitPopup = document.getElementById("partner-wait-popup");
+    const closeWait = document.getElementById("partner-wait-close");
+    if (waitPopup && closeWait) {
+        closeWait.addEventListener("click", () => {
+            waitPopup.hidden = true;
+        });
+        waitPopup.addEventListener("click", (event) => {
+            if (event.target === waitPopup) {
+                waitPopup.hidden = true;
+            }
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !waitPopup.hidden) {
+                waitPopup.hidden = true;
+            }
+        });
+    }
 
     const partnerStart = window.location.hash.replace("#", "");
     const startTab = document.querySelector('[data-partner-tab="' + partnerStart + '"]');

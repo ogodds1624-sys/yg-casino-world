@@ -36,6 +36,14 @@
             <p class="note">New partners must be approved by an admin before first sign-in.</p>
             <a class="button back-link" href="index.html">Back to site</a>
         </div>
+        <div class="wait-popup" id="partner-wait-popup" hidden>
+            <div class="wait-popup-card" role="dialog" aria-modal="true" aria-labelledby="partner-wait-title">
+                <p class="kicker">Waiting</p>
+                <h2 id="partner-wait-title">Waiting for approval</h2>
+                <p>Your application was sent to the admin. You can sign in after it is approved.</p>
+                <button type="button" id="partner-wait-close">OK</button>
+            </div>
+        </div>
         <script src="java.s"></script>
     </body>
 </html>
