@@ -166,15 +166,158 @@ hr {
     gap: 8px;
 }
 
+.home-phone {
+    width: min(100%, 300px);
+    margin: 36px auto 0;
+}
+
+.iphone-frame {
+    position: relative;
+    aspect-ratio: 71.5 / 149.6;
+    padding: 7px;
+    border-radius: 46px;
+    background:
+        linear-gradient(150deg, #8d8d92 0%, #4a4a4e 7%, #1c1c1e 28%, #0e0e10 62%, #2a2a2c 100%);
+    box-shadow:
+        0 30px 48px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+}
+
+.iphone-screen {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 39px;
+    background: #000;
+    box-shadow: inset 0 0 0 2px #050506;
+}
+
+.iphone-island {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 90px;
+    height: 26px;
+    padding-right: 8px;
+    border-radius: 20px;
+    background: #000;
+    transform: translateX(-50%);
+}
+
+.iphone-lens {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #6d88b0, #12151c 55%, #05060a 72%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.iphone-screen .signal {
+    z-index: 2;
+}
+
+.iphone-glass {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    background: linear-gradient(118deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 16%, transparent 34%);
+    pointer-events: none;
+}
+
+.iphone-home {
+    position: absolute;
+    bottom: 7px;
+    left: 50%;
+    z-index: 4;
+    width: 34%;
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.82);
+    transform: translateX(-50%);
+}
+
+.iphone-btn {
+    position: absolute;
+    z-index: 1;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(#9a9aa0, #3a3a3e 35%, #1a1a1c);
+}
+
+.iphone-action,
+.iphone-vol-up,
+.iphone-vol-down {
+    left: -2px;
+}
+
+.iphone-side,
+.iphone-camera {
+    right: -2px;
+    background: linear-gradient(270deg, #9a9aa0, #3a3a3e 35%, #1a1a1c);
+}
+
+.iphone-action {
+    top: 15%;
+    height: 3.2%;
+}
+
+.iphone-vol-up {
+    top: 20.5%;
+    height: 6%;
+}
+
+.iphone-vol-down {
+    top: 27.4%;
+    height: 6%;
+}
+
+.iphone-side {
+    top: 22%;
+    height: 9.5%;
+}
+
+.iphone-camera {
+    top: 34%;
+    height: 4.4%;
+}
+
+.iphone-band {
+    position: absolute;
+    z-index: 2;
+    width: 12px;
+    height: 3px;
+    background: #0a0a0c;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.iphone-band-left {
+    top: 11%;
+    left: 0;
+}
+
+.iphone-band-right {
+    right: 0;
+    bottom: 12%;
+}
+
 .signal {
-    width: min(100%, 680px);
+    position: relative;
+    width: 100%;
+    height: 100%;
     min-width: 0;
-    max-width: 100%;
-    margin-top: 36px;
-    padding: 16px 18px 14px;
-    border: 1px solid rgba(232, 189, 98, 0.35);
-    border-radius: 12px;
-    background: rgba(18, 26, 22, 0.85);
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .signal-kicker {
@@ -188,6 +331,13 @@ hr {
     text-transform: uppercase;
 }
 
+.signal > .signal-kicker {
+    position: absolute;
+    top: 48px;
+    left: 16px;
+    z-index: 2;
+}
+
 .signal-live {
     width: 8px;
     height: 8px;
@@ -197,72 +347,290 @@ hr {
     animation: signal-blink 1.6s ease-in-out infinite;
 }
 
-.signal-chart {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: 120px;
-    margin-top: 6px;
-}
-
-.signal-fill {
-    fill: rgba(232, 189, 98, 0.14);
-    opacity: 0.2;
-    animation: signal-fill 3.8s ease-in-out infinite;
-}
-
-.signal-path {
-    fill: none;
-    stroke: var(--gold);
-    stroke-width: 3;
-    stroke-linecap: round;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: signal-draw 3.8s ease-in-out infinite;
-}
-
-.signal-dot {
-    fill: var(--gold);
-    filter: drop-shadow(0 0 6px rgba(232, 189, 98, 0.95));
-}
-
-.signal-reads {
+.aviator-board {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    height: 100%;
+    padding: 44px 8px 16px;
+    background: #101114;
+    box-sizing: border-box;
+}
+
+.aviator-history {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.aviator-history li {
+    flex: 0 0 auto;
+}
+
+.aviator-history li.is-low { color: #34b3ff; }
+.aviator-history li.is-mid { color: #7b5cff; }
+.aviator-history li.is-high { color: #d946ef; }
+
+.aviator-stage {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    margin-top: 0;
+    overflow: hidden;
+    border-radius: 18px;
+    background: repeating-conic-gradient(from 214deg at 0% 100%, #101822 0deg 7deg, #1a273c 7deg 14deg);
+}
+
+.aviator-odd,
+.main-content .aviator-odd {
+    position: absolute;
+    top: 46%;
+    left: 50%;
+    z-index: 1;
+    margin: 0;
+    color: #ffffff;
+    font-size: 2.7rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
+    text-align: center;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    transform: translate(-50%, -50%);
+}
+
+.aviator-bets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.aviator-bet {
+    padding: 8px;
+    border-radius: 16px;
+    background: #1c1e22;
+}
+
+.aviator-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 8px;
+    color: #8b9098;
+    font-size: 0.72rem;
+}
+
+.aviator-tabs .is-on {
+    padding: 4px 18px;
+    border-radius: 999px;
+    background: #3a3d44;
+    color: #fff;
+}
+
+.aviator-row {
+    display: flex;
     gap: 8px;
 }
 
-.signal-reads span {
-    padding: 4px 12px;
-    border: 1px solid rgba(232, 189, 98, 0.35);
+.aviator-stake,
+.aviator-go {
+    min-width: 0;
+}
+
+.aviator-stake {
+    flex: 0 0 46%;
+}
+
+.aviator-amount,
+.aviator-chips {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.aviator-amount {
+    min-height: 32px;
+    padding: 0 6px;
     border-radius: 999px;
-    color: var(--gold);
-    font-size: 0.85rem;
+    background: #2a2d33;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.aviator-amount button,
+.aviator-chips button {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #3a3d44;
+    color: #fff;
+    font-size: 0.72rem;
     font-weight: 700;
-    animation: signal-pop 2.4s ease-in-out infinite;
+    line-height: 1;
 }
 
-.signal-reads span:nth-child(2) {
-    animation-delay: 0.35s;
+.aviator-amount button:hover,
+.aviator-chips button:hover {
+    transform: none;
+    background: #4a4e56;
 }
 
-.signal-reads span:nth-child(3) {
-    animation-delay: 0.7s;
+.aviator-chips {
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.aviator-chips button {
+    flex: 1;
+    width: auto;
+    height: 22px;
+    border-radius: 8px;
+}
+
+.signal button.aviator-go {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 8px 6px;
+    border: 0;
+    border-radius: 14px;
+    background: #3dcc28;
+    color: #fff;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.signal button.aviator-go:hover {
+    transform: none;
+    background: #4ade2e;
+}
+
+.signal button.aviator-go.is-live {
+    background: #e08412;
+}
+
+.signal button.aviator-go.is-live:hover {
+    background: #f0941c;
+}
+
+.signal button.aviator-go.is-won {
+    background: #1f8f3a;
+}
+
+.signal button.aviator-go.is-won:hover {
+    transform: none;
+    background: #1f8f3a;
+}
+
+.aviator-go span {
+    font-size: 0.95rem;
+}
+
+.aviator-go strong {
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.aviator-odd.is-crash {
+    opacity: 0.45;
+}
+
+.aviator-chart {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+}
+
+.aviator-stars {
+    opacity: 0.9;
+}
+
+.signal .signal-live {
+    background: #e31b23;
+    box-shadow: 0 0 10px #e31b23;
+}
+
+.aviator-fill {
+    fill: #d0121c;
+}
+
+.aviator-trail {
+    fill: none;
+    stroke: #ff2a2a;
+    stroke-width: 7;
+    stroke-linecap: round;
+}
+
+.aviator-plane {
+    opacity: 0;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
+}
+
+@media (max-width: 560px) {
+    .home .main-content {
+        min-height: 0;
+        padding: 28px 0 32px;
+    }
+
+    .home .main-content > h1 {
+        order: 1;
+    }
+
+    .home .main-content > hr {
+        order: 2;
+    }
+
+    .home .home-phone {
+        order: 3;
+        width: min(78%, 280px);
+        margin-top: 8px;
+    }
+
+    .home .signal {
+        padding: 0;
+    }
+
+    .home .main-content > p {
+        order: 4;
+        margin-bottom: 18px;
+    }
+
+    .home .actions {
+        order: 5;
+    }
+
+    .home .feed {
+        order: 6;
+    }
+
+    .home .main-content .aviator-odd {
+        font-size: 2.35rem;
+    }
+
+    .aviator-go strong {
+        font-size: 0.86rem;
+    }
 }
 
 @keyframes signal-blink {
     0%, 100% { opacity: 0.35; }
     50% { opacity: 1; }
-}
-
-@keyframes signal-draw {
-    0% { stroke-dashoffset: 1; opacity: 0.4; }
-    70%, 100% { stroke-dashoffset: 0; opacity: 1; }
-}
-
-@keyframes signal-fill {
-    0% { opacity: 0; }
-    70%, 100% { opacity: 1; }
 }
 
 @keyframes signal-pop {
@@ -328,24 +696,12 @@ hr {
 
 @media (prefers-reduced-motion: reduce) {
     .signal-live,
-    .signal-fill,
-    .signal-path,
-    .signal-reads span,
     .feed-odd.is-hot {
         animation: none;
     }
 
-    .signal-path {
-        stroke-dashoffset: 0;
-    }
-
-    .signal-fill,
-    .signal-reads span {
+    .aviator-odd.is-crash {
         opacity: 1;
-    }
-
-    .signal-dot {
-        display: none;
     }
 
     .home .actions a.button:last-of-type::before {

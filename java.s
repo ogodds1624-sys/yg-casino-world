@@ -763,6 +763,176 @@ if (adminLock) {
     }
 }
 
+const aviatorOdd = document.getElementById("aviator-odd");
+const aviatorPlane = document.querySelector(".aviator-plane");
+const aviatorTrail = document.querySelector(".aviator-trail");
+const aviatorClip = document.querySelector(".aviator-clip");
+const aviatorHistory = document.getElementById("aviator-history");
+if (aviatorOdd && aviatorPlane && aviatorTrail && aviatorClip) {
+    const maxOdd = 5.99;
+    const reduceFlight = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const trailLength = aviatorTrail.getTotalLength();
+    aviatorTrail.style.strokeDasharray = String(trailLength);
+    const tone = (value) => value < 2 ? "is-low" : value < 4 ? "is-mid" : "is-high";
+    const paintHistory = () => {
+        if (!aviatorHistory) {
+            return;
+        }
+        aviatorHistory.querySelectorAll("li").forEach((item) => {
+            const value = Number.parseFloat(item.textContent);
+            item.className = tone(value);
+        });
+    };
+    const remember = (value) => {
+        if (!aviatorHistory) {
+            return;
+        }
+        const item = document.createElement("li");
+        item.textContent = value.toFixed(2) + "x";
+        aviatorHistory.prepend(item);
+        while (aviatorHistory.children.length > 6) {
+            aviatorHistory.lastElementChild.remove();
+        }
+        paintHistory();
+    };
+    const paintTrail = (along) => {
+        const clamped = Math.max(0, Math.min(1, along));
+        aviatorTrail.style.strokeDashoffset = String(trailLength * (1 - clamped));
+        const tip = aviatorTrail.getPointAtLength(trailLength * clamped);
+        aviatorClip.setAttribute("width", String(Math.max(0, tip.x)));
+    };
+    const placePlane = (distance) => {
+        const clamped = Math.max(0, Math.min(trailLength, distance));
+        const point = aviatorTrail.getPointAtLength(clamped);
+        const ahead = aviatorTrail.getPointAtLength(Math.min(trailLength, clamped + 12));
+        const dx = ahead.x - point.x || 1;
+        const dy = ahead.y - point.y;
+        const span = Math.hypot(dx, dy) || 1;
+        const extra = Math.max(0, distance - trailLength);
+        const x = point.x + (dx / span) * extra + (dy / span) * 12;
+        const y = point.y + (dy / span) * extra - (dx / span) * 12;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        aviatorPlane.setAttribute("transform", "translate(" + x + " " + y + ") rotate(" + angle + ") scale(2.7)");
+    };
+    const nextCrash = () => Math.round((1 + Math.random() * (maxOdd - 1)) * 100) / 100;
+    const money = (amount) => amount.toFixed(2) + " GHS";
+    const paintPanel = (panelState, label, payout, button) => {
+        const won = panelState.cashed;
+        const live = panelState.flying && !won;
+        button.classList.toggle("is-live", live);
+        button.classList.toggle("is-won", won);
+        if (won) {
+            label.textContent = "Won";
+            payout.textContent = money(panelState.won);
+            return;
+        }
+        if (!panelState.flying) {
+            label.textContent = "Bet";
+            payout.textContent = money(panelState.stake);
+            return;
+        }
+        label.textContent = "Cash Out";
+        payout.textContent = money(panelState.locked * panelState.odd);
+    };
+    let round = 0;
+    const betPanels = [...document.querySelectorAll(".aviator-bet")].map((panel) => {
+        const stakeNode = panel.querySelector(".aviator-amount strong");
+        const button = panel.querySelector(".aviator-go");
+        const label = button.querySelector("span");
+        const payout = button.querySelector("strong");
+        const panelState = {
+            stake: 1,
+            locked: 1,
+            cashed: false,
+            won: 0,
+            round: -1,
+            odd: 1,
+            flying: false
+        };
+        const paintStake = () => {
+            stakeNode.textContent = panelState.stake.toFixed(2);
+        };
+        const setStake = (next) => {
+            panelState.stake = Math.min(500, Math.max(1, Math.round(next)));
+            paintStake();
+            if (!panelState.flying && !panelState.cashed) {
+                payout.textContent = money(panelState.stake);
+            }
+        };
+        panel.querySelectorAll(".aviator-step").forEach((step) => {
+            step.addEventListener("click", () => {
+                setStake(panelState.stake + Number(step.dataset.step));
+            });
+        });
+        panel.querySelectorAll(".aviator-chip").forEach((chip) => {
+            chip.addEventListener("click", () => {
+                setStake(Number(chip.textContent));
+            });
+        });
+        button.addEventListener("click", () => {
+            if (!panelState.flying || panelState.cashed) {
+                return;
+            }
+            panelState.cashed = true;
+            panelState.won = Math.round(panelState.locked * panelState.odd * 100) / 100;
+            paintPanel(panelState, label, payout, button);
+        });
+        return { panelState, label, payout, button };
+    });
+    const syncBets = (odd, flying) => {
+        betPanels.forEach(({ panelState, label, payout, button }) => {
+            if (panelState.round !== round) {
+                panelState.round = round;
+                panelState.locked = panelState.stake;
+                panelState.cashed = false;
+                panelState.won = 0;
+            }
+            panelState.odd = odd;
+            panelState.flying = flying;
+            paintPanel(panelState, label, payout, button);
+        });
+    };
+    paintHistory();
+    if (reduceFlight) {
+        aviatorOdd.textContent = "2.40x";
+        placePlane(trailLength * ((2.4 - 1) / (maxOdd - 1)));
+        aviatorPlane.style.opacity = "1";
+        paintTrail((2.4 - 1) / (maxOdd - 1));
+        syncBets(2.4, true);
+    } else {
+        let cycleStart = performance.now();
+        let crashOdd = nextCrash();
+        let remembered = false;
+        const fly = (now) => {
+            const cycle = 2600 + ((crashOdd - 1) / (maxOdd - 1)) * 2800;
+            let progress = (now - cycleStart) / cycle;
+            if (progress >= 1) {
+                cycleStart = now;
+                crashOdd = nextCrash();
+                remembered = false;
+                progress = 0;
+                round += 1;
+            }
+            const flying = progress < 0.84;
+            const climb = flying ? progress / 0.84 : 1;
+            const value = Math.min(maxOdd, 1 + (crashOdd - 1) * climb);
+            const along = (value - 1) / (maxOdd - 1);
+            if (!flying && !remembered) {
+                remember(crashOdd);
+                remembered = true;
+            }
+            aviatorOdd.textContent = value.toFixed(2) + "x";
+            aviatorOdd.classList.toggle("is-crash", !flying);
+            syncBets(value, flying);
+            placePlane(trailLength * (flying ? along : along + ((progress - 0.84) / 0.16) * 0.08));
+            aviatorPlane.style.opacity = flying ? "1" : String(Math.max(0, 1 - (progress - 0.84) / 0.16));
+            paintTrail(along);
+            window.requestAnimationFrame(fly);
+        };
+        window.requestAnimationFrame(fly);
+    }
+}
+
 const predictionFeed = document.querySelector(".feed");
 if (predictionFeed) {
     const liveOdds = predictionFeed.querySelectorAll(".feed-odd");

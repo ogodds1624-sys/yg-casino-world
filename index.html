@@ -27,21 +27,88 @@
                 <a class="button" href="signup.html">Get Started</a>
                 <a class="button" href="country.html">See Live Hacks</a>
              </div>
-             <div class="signal" aria-hidden="true">
-                <p class="signal-kicker"><span class="signal-live"></span> Live signal</p>
-                <svg class="signal-chart" viewBox="0 0 640 150">
-                    <path class="signal-fill" d="M24 118 C 150 116, 190 88, 260 76 S 390 36, 480 30 S 560 16, 616 12 L 616 140 L 24 140 Z"></path>
-                    <path id="signal-route" class="signal-path" pathLength="1" d="M24 118 C 150 116, 190 88, 260 76 S 390 36, 480 30 S 560 16, 616 12"></path>
-                    <circle class="signal-dot" r="5">
-                        <animateMotion dur="3.8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.42 0 0.2 1">
-                            <mpath href="#signal-route"></mpath>
-                        </animateMotion>
-                    </circle>
-                </svg>
-                <div class="signal-reads">
-                    <span>1.40x</span>
-                    <span>2.85x</span>
-                    <span>6.20x</span>
+             <div class="home-phone" aria-hidden="true">
+                <div class="iphone-frame">
+                    <span class="iphone-btn iphone-action"></span>
+                    <span class="iphone-btn iphone-vol-up"></span>
+                    <span class="iphone-btn iphone-vol-down"></span>
+                    <span class="iphone-btn iphone-side"></span>
+                    <span class="iphone-btn iphone-camera"></span>
+                    <span class="iphone-band iphone-band-left"></span>
+                    <span class="iphone-band iphone-band-right"></span>
+                    <div class="iphone-screen">
+                        <span class="iphone-island"><span class="iphone-lens"></span></span>
+                        <span class="iphone-glass"></span>
+                        <span class="iphone-home"></span>
+             <div class="signal">
+                <div class="aviator-board">
+                    <ul class="aviator-history" id="aviator-history">
+                        <li>1.41x</li>
+                        <li>2.08x</li>
+                        <li>1.18x</li>
+                        <li>4.74x</li>
+                        <li>1.87x</li>
+                        <li>3.22x</li>
+                    </ul>
+                    <div class="aviator-stage">
+                        <p class="aviator-odd" id="aviator-odd">1.00x</p>
+                        <svg class="aviator-chart" viewBox="0 0 640 640" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <clipPath id="aviator-rise-clip">
+                                    <rect class="aviator-clip" x="0" y="0" width="0" height="640"></rect>
+                                </clipPath>
+                            </defs>
+                            <path class="aviator-fill" clip-path="url(#aviator-rise-clip)" d="M150 590 C 250 575, 330 500, 400 390 C 470 270, 520 170, 545 130 L 545 640 L 0 640 Z"></path>
+                            <path class="aviator-trail" d="M150 590 C 250 575, 330 500, 400 390 C 470 270, 520 170, 545 130"></path>
+                            <g class="aviator-plane" fill="#e31b23" stroke="#3a0608" stroke-width="1.4" stroke-linejoin="round">
+                                <path d="M0 0 L-22 -3.2 L-28 -18 L-36 -18 L-30 -3.4 L-46 -6 L-52 -13 L-52 -7 L-44 -2.2 L-54 0 L-44 2.2 L-52 7 L-52 13 L-46 6 L-30 3.4 L-36 18 L-28 18 L-22 3.2 Z"></path>
+                                <path fill="#ff5c5c" stroke="none" d="M-6 -1.2 L-16 -1.2 L-18 0 L-16 1.2 L-6 1.2 L-2 0 Z"></path>
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="aviator-bets">
+                        <div class="aviator-bet">
+                            <div class="aviator-tabs"><span class="is-on">Bet</span><span>Auto</span></div>
+                            <div class="aviator-row">
+                                <div class="aviator-stake">
+                                    <div class="aviator-amount">
+                                        <button type="button" class="aviator-step" data-step="-1" aria-label="Lower stake">-</button>
+                                        <strong>1.00</strong>
+                                        <button type="button" class="aviator-step" data-step="1" aria-label="Raise stake">+</button>
+                                    </div>
+                                    <div class="aviator-chips">
+                                        <button type="button" class="aviator-chip">1</button>
+                                        <button type="button" class="aviator-chip">5</button>
+                                        <button type="button" class="aviator-chip">10</button>
+                                        <button type="button" class="aviator-chip">50</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="aviator-go"><span>Bet</span><strong>1.00 GHS</strong></button>
+                            </div>
+                        </div>
+                        <div class="aviator-bet">
+                            <div class="aviator-tabs"><span class="is-on">Bet</span><span>Auto</span></div>
+                            <div class="aviator-row">
+                                <div class="aviator-stake">
+                                    <div class="aviator-amount">
+                                        <button type="button" class="aviator-step" data-step="-1" aria-label="Lower stake">-</button>
+                                        <strong>1.00</strong>
+                                        <button type="button" class="aviator-step" data-step="1" aria-label="Raise stake">+</button>
+                                    </div>
+                                    <div class="aviator-chips">
+                                        <button type="button" class="aviator-chip">1</button>
+                                        <button type="button" class="aviator-chip">5</button>
+                                        <button type="button" class="aviator-chip">10</button>
+                                        <button type="button" class="aviator-chip">50</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="aviator-go"><span>Bet</span><strong>1.00 GHS</strong></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+                    </div>
                 </div>
              </div>
              <section class="feed" aria-label="Prediction feed">
