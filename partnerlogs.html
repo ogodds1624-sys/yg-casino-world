@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Sign in or apply to become a Casino World partner.">
+        <title>Partner Access - Casino World</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="login-container partner-access">
+            <h2>CASINO WORLD</h2>
+            <p class="partner-kicker">Partner access</p>
+            <div class="partner-tabs">
+                <button type="button" class="is-on" data-partner-tab="sign-in">Sign in</button>
+                <button type="button" data-partner-tab="join">Become a partner</button>
+            </div>
+            <form id="partner-sign-in">
+                <label for="partner-email">Email</label>
+                <input type="email" id="partner-email" name="email" placeholder="you@email.com" autocomplete="email" required>
+                <label for="partner-password">Password</label>
+                <input type="password" id="partner-password" name="password" placeholder="Password" autocomplete="current-password" required>
+                <button type="submit">Sign in</button>
+            </form>
+            <form id="partner-join" hidden>
+                <label for="join-name">Name</label>
+                <input type="text" id="join-name" name="name" autocomplete="name" required>
+                <label for="join-email">Email</label>
+                <input type="email" id="join-email" name="email" autocomplete="email" required>
+                <label for="join-password">Partner password</label>
+                <input type="password" id="join-password" name="password" autocomplete="new-password" minlength="6" required>
+                <label for="join-referral">Referral</label>
+                <input type="text" id="join-referral" name="referral" autocomplete="off">
+                <button type="submit">Become a partner</button>
+            </form>
+            <p class="note">New partners must be approved by an admin before first sign-in.</p>
+            <a class="button back-link" href="index.html">Back to site</a>
+        </div>
+        <script src="java.s"></script>
+    </body>
+</html>

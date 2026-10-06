@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Casino World partner dashboard.">
+        <title>Partner Dashboard - Casino World</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body class="admin">
+        <header class="admin-header">
+            <h2>CASINO WORLD <span>PARTNER</span></h2>
+            <nav class="admin-nav" id="partner-dash-nav">
+                <button type="button" class="is-on" data-partner-panel="overview">Overview</button>
+                <button type="button" data-partner-panel="referrals">Referrals</button>
+                <a class="button" href="partnerlogs.html">Sign out</a>
+            </nav>
+        </header>
+        <main class="admin-main">
+            <div id="partner-panel-overview">
+                <section class="admin-intro">
+                    <div>
+                        <p class="kicker">Partner</p>
+                        <h1>Overview</h1>
+                    </div>
+                </section>
+                <section class="cards">
+                    <div class="card">
+                        <h3>Daily Ghana</h3>
+                        <p class="amount">0</p>
+                        <p>Resets at midnight</p>
+                    </div>
+                    <div class="card">
+                        <h3>Daily Nigeria</h3>
+                        <p class="amount">₦0</p>
+                        <p>Tue 6 Oct • resets at midnight</p>
+                    </div>
+                </section>
+                <section class="cards">
+                    <div class="card">
+                        <h3>Total Ghana</h3>
+                        <p class="amount">0</p>
+                        <p>Does not reset</p>
+                    </div>
+                    <div class="card">
+                        <h3>Total Nigeria</h3>
+                        <p class="amount">₦0</p>
+                        <p>Does not reset</p>
+                    </div>
+                </section>
+                <section class="revenue-section card">
+                    <h2>Daily revenue Ghana</h2>
+                    <div class="revenue-table">
+                        <div class="row">
+                            <span>Tue 29 Sep</span>
+                            <span>GHS 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Wed 30 Sep</span>
+                            <span>GHS 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Thu 1 Oct</span>
+                            <span>GHS 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Fri 2 Oct</span>
+                            <span>GHS 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Sat 3 Oct</span>
+                            <span>GHS 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Sun 4 Oct</span>
+                            <span>GHS 0</span>
+                        </div>
+                        <div class="row active">
+                            <span>Mon 5 Oct</span>
+                            <span>GHS 0</span>
+                        </div>
+                    </div>
+                </section>
+                <section class="revenue-section card">
+                    <h2>Daily revenue Nigeria</h2>
+                    <div class="revenue-table">
+                        <div class="row">
+                            <span>Tue 29 Sep</span>
+                            <span>NGN 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Wed 30 Sep</span>
+                            <span>NGN 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Thu 1 Oct</span>
+                            <span>NGN 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Fri 2 Oct</span>
+                            <span>NGN 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Sat 3 Oct</span>
+                            <span>NGN 0</span>
+                        </div>
+                        <div class="row">
+                            <span>Sun 4 Oct</span>
+                            <span>NGN 0</span>
+                        </div>
+                        <div class="row active">
+                            <span>Mon 5 Oct</span>
+                            <span>NGN 0</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div id="partner-panel-referrals" hidden>
+                <section class="admin-intro">
+                    <div>
+                        <p class="kicker">Network</p>
+                        <h1>Referrals</h1>
+                    </div>
+                </section>
+                <section class="card members-panel">
+                    <label class="member-search">
+                        <span class="visually-hidden">Search referrals</span>
+                    </label>
+                    <div class="members-wrap">
+                        <table class="members">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>member</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <p class="members-empty" id="referrals-empty">No referrals yet.</p>
+                </section>
+            </div>
+        </main>
+        <script src="java.s"></script>
+    </body>
+</html>
