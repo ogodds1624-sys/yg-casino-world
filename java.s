@@ -148,7 +148,7 @@ const currentPartner = (store) => {
 
 const partnerDayEarnings = (store, partner, day) => {
     const referred = store.transactions.filter((item) => {
-        return item.status === "PAID" && partner.referral && item.referral === partner.referral && (!day || dayKey(item.date) === day);
+        return paymentReceived(item) && partner.referral && item.referral === partner.referral && (!day || dayKey(item.date) === day);
     });
     const ghs = referred.filter((item) => item.country !== "ngn").reduce((total, item) => total + packageAmount(item.package), 0);
     const ngn = referred.filter((item) => item.country === "ngn").reduce((total, item) => total + packageAmount(item.package), 0);
@@ -156,6 +156,54 @@ const partnerDayEarnings = (store, partner, day) => {
         ghs: partnerEarnings(ghs, partner.commission),
         ngn: partnerEarnings(ngn, partner.commission)
     };
+};
+
+const takenReferrals = (partners) => {
+    const taken = new Set();
+    partners.forEach((partner) => {
+        if (partner.referral) {
+            taken.add(partner.referral);
+        }
+    });
+    return taken;
+};
+
+const referralCode = (name, taken) => {
+    const letters = String(name || "").toUpperCase().replace(/[^A-Z]/g, "");
+    const base = letters.slice(0, 4) || "PART";
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+    do {
+        let suffix = "";
+        for (let i = 0; i < 4; i += 1) {
+            suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
+        }
+        code = base + suffix;
+    } while (taken.has(code));
+    taken.add(code);
+    return code;
+};
+
+const ensureReferrals = (store) => {
+    const taken = takenReferrals(store.partners);
+    let changed = false;
+    store.partners.forEach((partner) => {
+        if (!partner.referral) {
+            partner.referral = referralCode(partner.name, taken);
+            changed = true;
+        }
+    });
+    if (changed) {
+        writeStore(store);
+    }
+};
+
+const referralLink = (code) => {
+    const url = new URL("index.html", window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.searchParams.set("ref", code);
+    return url.href;
 };
 
 const refParam = new URLSearchParams(window.location.search).get("ref");
@@ -186,12 +234,47 @@ const statusBadge = (status) => {
     return badge;
 };
 
+const paymentReceived = (item) => item.status === "PAID" || item.status === "RECEIVED";
+
+const referrerOf = (store, code) => {
+    if (!code) {
+        return null;
+    }
+    return store.partners.find((partner) => partner.referral === code) || null;
+};
+
+const appendMemberRow = (body, member, store) => {
+    const joined = member.joined ? new Date(member.joined) : null;
+    const joinedOk = joined && !Number.isNaN(joined.getTime());
+    const row = document.createElement("tr");
+    const referrer = referrerOf(store, member.referredBy);
+    const referredName = referrer ? referrer.name : (member.referredBy || "");
+    row.dataset.search = [member.name, member.email, member.referredBy, referredName, member.status].join(" ").toLowerCase();
+    const status = document.createElement("td");
+    status.append(statusBadge(member.status));
+    const referred = document.createElement("td");
+    if (referredName) {
+        referred.append(Object.assign(document.createElement("span"), { className: "referral-pill", textContent: referredName }));
+    } else {
+        referred.textContent = "—";
+    }
+    row.append(
+        stackCell(member.name || "—", member.email || "", "member-name", "member-email"),
+        joinedOk
+            ? stackCell(joined.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), joined.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time")
+            : textCell("—"),
+        status,
+        referred
+    );
+    body.append(row);
+};
+
 const renderBackend = () => {
     if (!document.getElementById("panel-members")) {
         return;
     }
     const store = readStore();
-    const paid = store.transactions.filter((item) => item.status === "PAID");
+    const paid = store.transactions.filter((item) => paymentReceived(item));
     const today = dayKey(new Date());
     const sumFor = (country, onlyToday) => {
         return paid
@@ -199,11 +282,10 @@ const renderBackend = () => {
             .filter((item) => !onlyToday || dayKey(item.date) === today)
             .reduce((total, item) => total + packageAmount(item.package), 0);
     };
-    const connected = store.members.filter((member) => member.phone).length;
     const membersAmount = document.getElementById("stat-members");
     if (membersAmount) {
         membersAmount.textContent = String(store.members.length);
-        document.getElementById("stat-members-note").textContent = connected + " connected account" + (connected === 1 ? "" : "s");
+        document.getElementById("stat-members-note").textContent = store.members.length + " registered user" + (store.members.length === 1 ? "" : "s");
         document.getElementById("stat-daily-gh").textContent = String(sumFor("gh", true));
         document.getElementById("stat-total-gh").textContent = String(sumFor("gh", false));
         document.getElementById("stat-daily-ng").textContent = "₦" + sumFor("ngn", true);
@@ -223,24 +305,7 @@ const renderBackend = () => {
     const memberBody = document.querySelector("#panel-members .members tbody");
     memberBody.replaceChildren();
     store.members.forEach((member) => {
-        const joined = new Date(member.joined);
-        const row = document.createElement("tr");
-        row.dataset.search = [member.name, member.email, member.referredBy].join(" ").toLowerCase();
-        const status = document.createElement("td");
-        status.append(statusBadge(member.status));
-        const referred = document.createElement("td");
-        if (member.referredBy) {
-            referred.append(Object.assign(document.createElement("span"), { className: "referral-pill", textContent: member.referredBy }));
-        } else {
-            referred.textContent = "—";
-        }
-        row.append(
-            stackCell(member.name, member.email, "member-name", "member-email"),
-            stackCell(joined.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), joined.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time"),
-            status,
-            referred
-        );
-        memberBody.append(row);
+        appendMemberRow(memberBody, member, store);
     });
     document.getElementById("members-empty").hidden = store.members.length !== 0;
 
@@ -250,41 +315,87 @@ const renderBackend = () => {
         const when = new Date(item.date);
         const row = document.createElement("tr");
         row.dataset.search = [item.name, item.email, item.package, item.proof].join(" ").toLowerCase();
-        const proof = textCell(item.proof || "—");
+        const proof = document.createElement("td");
+        if (item.proofImage) {
+            const shot = document.createElement("img");
+            shot.className = "proof-shot";
+            shot.src = item.proofImage;
+            shot.alt = "Payment screenshot from " + (item.name || "member");
+            shot.addEventListener("click", () => {
+                const view = document.getElementById("proof-view");
+                const image = document.getElementById("proof-view-image");
+                if (!view || !image) {
+                    return;
+                }
+                image.src = item.proofImage;
+                view.hidden = false;
+            });
+            proof.append(shot);
+        } else {
+            proof.textContent = item.proof || "—";
+        }
         const referral = document.createElement("td");
         if (item.referral) {
             referral.append(Object.assign(document.createElement("span"), { className: "referral-pill", textContent: item.referral }));
         } else {
             referral.textContent = "—";
         }
+        const memberRecord = store.members.find((member) => member.email && item.email && member.email.toLowerCase() === item.email.toLowerCase());
+        const memberName = item.name || (memberRecord ? memberRecord.name : "") || "—";
+        const packageAmountLabel = item.package || "—";
+        const market = item.country === "ngn" ? "Nigeria" : "Ghana";
         const status = document.createElement("td");
-        if (item.status === "PAID") {
-            status.append(statusBadge("PAID"));
+        const markPayment = (nextStatus) => {
+            const next = readStore();
+            const saved = next.transactions.find((entry) => entry.id === item.id);
+            if (!saved || paymentReceived(saved) || saved.status === "REJECTED") {
+                return;
+            }
+            saved.status = nextStatus;
+            const member = next.members.find((entry) => entry.email && saved.email && entry.email.toLowerCase() === saved.email.toLowerCase());
+            if (member && nextStatus === "RECEIVED") {
+                member.status = "PAID";
+            }
+            writeStore(next);
+            renderBackend();
+        };
+        if (paymentReceived(item)) {
+            const badge = document.createElement("span");
+            badge.className = "badge-paid";
+            badge.textContent = "Received";
+            status.append(badge);
+        } else if (item.status === "REJECTED") {
+            const badge = document.createElement("span");
+            badge.className = "badge-unpaid";
+            badge.textContent = "Rejected";
+            status.append(badge);
         } else {
-            const confirm = document.createElement("button");
-            confirm.type = "button";
-            confirm.className = "copy";
-            confirm.textContent = "Confirm";
-            confirm.addEventListener("click", () => {
-                const next = readStore();
-                const saved = next.transactions.find((entry) => entry.id === item.id);
-                if (!saved) {
-                    return;
-                }
-                saved.status = "PAID";
-                const member = next.members.find((entry) => entry.email.toLowerCase() === saved.email.toLowerCase());
-                if (member) {
-                    member.status = "PAID";
-                }
-                writeStore(next);
-                renderBackend();
+            const actions = document.createElement("div");
+            actions.className = "application-actions";
+            const received = document.createElement("button");
+            received.type = "button";
+            received.className = "copy";
+            received.textContent = "Approve";
+            const reject = document.createElement("button");
+            reject.type = "button";
+            reject.className = "copy is-delete";
+            reject.textContent = "Reject";
+            received.addEventListener("click", () => {
+                markPayment("RECEIVED");
             });
-            status.append(confirm);
+            reject.addEventListener("click", () => {
+                markPayment("REJECTED");
+            });
+            actions.append(received, reject);
+            status.append(actions);
         }
+        const whenOk = !Number.isNaN(when.getTime());
         row.append(
-            stackCell(when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time"),
-            stackCell(item.name || "—", item.email, "member-name", "member-email"),
-            textCell(item.package || "—"),
+            whenOk
+                ? stackCell(when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time")
+                : textCell("—"),
+            stackCell(memberName, item.email || "", "member-name", "member-email"),
+            stackCell(packageAmountLabel, market, "member-name", "member-email"),
             proof,
             referral,
             status
@@ -294,6 +405,7 @@ const renderBackend = () => {
     document.getElementById("transactions-empty").hidden = store.transactions.length !== 0;
 
     const partnerBody = document.getElementById("partner-body");
+    ensureReferrals(store);
     partnerBody.replaceChildren();
     store.partners.forEach((partner) => {
         const row = document.createElement("tr");
@@ -388,7 +500,7 @@ const renderBackend = () => {
             stackCell(partner.name, partner.email, "member-name", "member-email"),
             textCell("Active"),
             code,
-            textCell(partner.referral ? "index.html?ref=" + encodeURIComponent(partner.referral) : "—"),
+            textCell(partner.referral ? referralLink(partner.referral) : "—"),
             commissionCell,
             ghsCell,
             ngnCell,
@@ -435,7 +547,7 @@ const renderBackend = () => {
                                 name: saved.name,
                                 email: saved.email,
                                 password: saved.password,
-                                referral: "",
+                                referral: referralCode(saved.name, takenReferrals(next.partners)),
                                 commission: 0
                             });
                         }
@@ -572,12 +684,16 @@ if (addPartnerForm) {
         const name = String(data.get("name")).trim();
         const email = String(data.get("email")).trim();
         const password = String(data.get("password"));
-        const referral = String(data.get("referral")).trim();
+        let referral = String(data.get("referral")).trim();
         const commission = commissionPercent({ commission: data.get("commission") });
         if (!password) {
             return;
         }
         const store = readStore();
+        const taken = takenReferrals(store.partners);
+        if (!referral || taken.has(referral)) {
+            referral = referralCode(name, taken);
+        }
         store.partners.unshift({
             id: Date.now().toString(36),
             name,
@@ -761,9 +877,142 @@ if (partnerDashNav) {
             openDash(button.dataset.partnerPanel);
         });
     });
+    const renderPartnerReferrals = () => {
+        const referralBody = document.querySelector("#partner-panel-referrals .members tbody");
+        if (!referralBody) {
+            return;
+        }
+        const store = readStore();
+        const partner = currentPartner(store);
+        const people = store.members.filter((member) => partner && member.referredBy && member.referredBy === partner.referral);
+        referralBody.replaceChildren();
+        people.forEach((member) => {
+            appendMemberRow(referralBody, member, store);
+        });
+        const referralsEmpty = document.getElementById("referrals-empty");
+        if (referralsEmpty) {
+            referralsEmpty.hidden = people.length !== 0;
+        }
+    };
+    const partnerNet = (store, partner, country, day) => {
+        if (!partner) {
+            return 0;
+        }
+        const gross = store.transactions
+            .filter((item) => paymentReceived(item) && item.referral === partner.referral && (item.country === "ngn" ? "ngn" : "gh") === country && (!day || dayKey(item.date) === day))
+            .reduce((total, item) => total + packageAmount(item.package), 0);
+        return partnerEarnings(gross, partner.commission);
+    };
+    const renderPartnerOverview = () => {
+        const dailyGh = document.getElementById("partner-daily-gh");
+        if (!dailyGh) {
+            return;
+        }
+        const store = readStore();
+        const partner = currentPartner(store);
+        const today = dayKey(new Date());
+        dailyGh.textContent = "GHS " + formatAmount(partnerNet(store, partner, "gh", today));
+        document.getElementById("partner-total-gh").textContent = "GHS " + formatAmount(partnerNet(store, partner, "gh"));
+        document.getElementById("partner-daily-ng").textContent = "₦" + formatAmount(partnerNet(store, partner, "ngn", today));
+        document.getElementById("partner-total-ng").textContent = "₦" + formatAmount(partnerNet(store, partner, "ngn"));
+        document.querySelectorAll("[data-partner-revenue]").forEach((table) => {
+            const country = table.dataset.partnerRevenue;
+            table.replaceChildren();
+            for (let offset = 6; offset >= 0; offset -= 1) {
+                const date = new Date();
+                date.setDate(date.getDate() - offset);
+                const key = dayKey(date);
+                const row = document.createElement("div");
+                row.className = key === today ? "row active" : "row";
+                const label = document.createElement("span");
+                label.textContent = date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+                const value = document.createElement("span");
+                value.textContent = (country === "ngn" ? "NGN " : "GHS ") + formatAmount(partnerNet(store, partner, country, key));
+                row.append(label, value);
+                table.append(row);
+            }
+        });
+        const paymentBody = document.getElementById("partner-payment-body");
+        if (!paymentBody) {
+            return;
+        }
+        paymentBody.replaceChildren();
+        const payments = partner ? store.transactions.filter((item) => item.referral === partner.referral) : [];
+        payments.forEach((item) => {
+            const when = new Date(item.date);
+            const row = document.createElement("tr");
+            const received = paymentReceived(item);
+            const yourAmount = received ? (item.country === "ngn" ? "₦" : "GHS ") + formatAmount(partnerEarnings(packageAmount(item.package), partner.commission)) : "—";
+            const statusText = received ? "Received" : item.status === "REJECTED" ? "Rejected" : "Waiting";
+            row.append(
+                !Number.isNaN(when.getTime())
+                    ? stackCell(when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time")
+                    : textCell("—"),
+                textCell(item.name || "—"),
+                textCell(item.package || "—"),
+                textCell(yourAmount),
+                textCell(statusText)
+            );
+            paymentBody.append(row);
+        });
+        const paymentsEmpty = document.getElementById("partner-payments-empty");
+        if (paymentsEmpty) {
+            paymentsEmpty.hidden = payments.length !== 0;
+        }
+    };
+    renderPartnerReferrals();
+    renderPartnerOverview();
+    window.addEventListener("storage", (event) => {
+        if (event.key === STORE_KEY) {
+            renderPartnerReferrals();
+            renderPartnerOverview();
+            renderPartnerPayout();
+        }
+    });
     const dashStart = window.location.hash.replace("#", "");
     if (dashPanels[dashStart]) {
         openDash(dashStart);
+    }
+    const codeNode = document.getElementById("referral-code");
+    const linkNode = document.getElementById("referral-link");
+    const copyReferral = document.getElementById("copy-referral");
+    if (codeNode && linkNode && copyReferral) {
+        const store = readStore();
+        const partner = currentPartner(store);
+        if (!partner) {
+            copyReferral.hidden = true;
+        } else {
+            ensureReferrals(store);
+            const link = referralLink(partner.referral);
+            codeNode.textContent = partner.referral;
+            linkNode.textContent = link;
+            copyReferral.hidden = false;
+            copyReferral.addEventListener("click", () => {
+                const done = () => {
+                    copyReferral.textContent = "Copied";
+                    window.setTimeout(() => {
+                        copyReferral.textContent = "Copy link";
+                    }, 1500);
+                };
+                const fallback = () => {
+                    const area = document.createElement("textarea");
+                    area.value = link;
+                    area.setAttribute("readonly", "");
+                    area.style.position = "fixed";
+                    area.style.left = "-9999px";
+                    document.body.appendChild(area);
+                    area.select();
+                    document.execCommand("copy");
+                    area.remove();
+                    done();
+                };
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(link).then(done).catch(fallback);
+                    return;
+                }
+                fallback();
+            });
+        }
     }
 }
 
@@ -843,6 +1092,19 @@ if (payoutRequest) {
     renderPartnerPayout();
 }
 
+const proofView = document.getElementById("proof-view");
+const proofClose = document.getElementById("proof-close");
+if (proofView && proofClose) {
+    proofClose.addEventListener("click", () => {
+        proofView.hidden = true;
+    });
+    proofView.addEventListener("click", (event) => {
+        if (event.target === proofView) {
+            proofView.hidden = true;
+        }
+    });
+}
+
 const partnerSignOut = document.getElementById("partner-sign-out");
 if (partnerSignOut) {
     partnerSignOut.addEventListener("click", (event) => {
@@ -854,13 +1116,13 @@ if (partnerSignOut) {
 
 const referralSearch = document.getElementById("referral-search");
 if (referralSearch) {
-    const referralRows = document.querySelectorAll("#partner-panel-referrals .members tbody tr");
     const referralsEmpty = document.getElementById("referrals-empty");
     referralSearch.addEventListener("input", () => {
         const query = referralSearch.value.trim().toLowerCase();
+        const rows = document.querySelectorAll("#partner-panel-referrals .members tbody tr");
         let shown = 0;
-        referralRows.forEach((row) => {
-            const match = row.dataset.search.includes(query);
+        rows.forEach((row) => {
+            const match = (row.dataset.search || "").includes(query);
             row.hidden = !match;
             if (match) {
                 shown += 1;
@@ -907,6 +1169,15 @@ if (signupForm) {
             store.members.unshift(member);
         } else {
             member.name = name;
+            if (!member.referredBy && sessionStorage.getItem(REF_KEY)) {
+                member.referredBy = sessionStorage.getItem(REF_KEY);
+            }
+            if (!member.joined) {
+                member.joined = new Date().toISOString();
+            }
+            if (!member.status) {
+                member.status = "UNPAID";
+            }
         }
         writeStore(store);
         sessionStorage.setItem(MEMBER_KEY, member.id);
@@ -1141,47 +1412,94 @@ if (paymentForm) {
         paymentForm.action = "packageN.html";
     }
     applyPrices();
-    const packageLabel = document.querySelector(".amount").textContent.trim();
     const statusNote = document.createElement("p");
     statusNote.id = "payment-status";
     statusNote.hidden = true;
     paymentForm.before(statusNote);
+    const selectedAmount = () => document.querySelector(".amount").textContent.trim();
+    const payCountry = () => new URLSearchParams(window.location.search).get("pay") === "ngn" ? "ngn" : "gh";
+
+    const readScreenshot = (file) => new Promise((resolve) => {
+        if (!file) {
+            resolve("");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const image = new Image();
+            image.onload = () => {
+                const max = 640;
+                const scale = Math.min(1, max / Math.max(image.width, image.height));
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, Math.round(image.width * scale));
+                canvas.height = Math.max(1, Math.round(image.height * scale));
+                canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL("image/jpeg", 0.6));
+            };
+            image.onerror = () => resolve("");
+            image.src = reader.result;
+        };
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+    });
 
     const matchingPayment = () => {
         const store = readStore();
         const member = currentMember(store);
         const email = member ? member.email.toLowerCase() : "";
-        return store.transactions.find((item) => item.package === packageLabel && item.email.toLowerCase() === email);
+        const amount = selectedAmount();
+        const country = payCountry();
+        return store.transactions.find((item) => item.package === amount && item.country === country && item.email.toLowerCase() === email && item.status !== "REJECTED");
     };
 
     const showPaymentState = () => {
         const saved = matchingPayment();
         if (!saved) {
+            paymentForm.hidden = false;
+            const store = readStore();
+            const member = currentMember(store);
+            const email = member ? member.email.toLowerCase() : "";
+            const rejected = store.transactions.find((item) => item.package === selectedAmount() && item.country === payCountry() && item.email.toLowerCase() === email && item.status === "REJECTED");
+            if (rejected) {
+                statusNote.hidden = false;
+                statusNote.textContent = "Payment rejected. Submit a new screenshot.";
+            }
             return;
         }
         paymentForm.hidden = true;
         statusNote.hidden = false;
-        statusNote.textContent = saved.status === "PAID" ? "Payment confirmed." : "Waiting for admin confirmation.";
+        statusNote.textContent = paymentReceived(saved) ? "Payment received." : "Waiting for admin confirmation.";
     };
 
     paymentForm.addEventListener("submit", (event) => {
         event.preventDefault();
-        const store = readStore();
-        const member = currentMember(store);
         const proofFile = receipt && receipt.files ? receipt.files[0] : null;
-        store.transactions.unshift({
-            id: Date.now().toString(36),
-            date: new Date().toISOString(),
-            name: member ? member.name : "",
-            email: member ? member.email : "",
-            package: packageLabel,
-            proof: proofFile ? proofFile.name : "",
-            referral: member ? member.referredBy : (sessionStorage.getItem(REF_KEY) || ""),
-            status: "PENDING",
-            country: member && member.country === "ngn" ? "ngn" : "gh"
+        readScreenshot(proofFile).then((proofImage) => {
+            const store = readStore();
+            const member = currentMember(store);
+            const record = {
+                id: Date.now().toString(36),
+                date: new Date().toISOString(),
+                name: member ? member.name : "",
+                email: member ? member.email : "",
+                package: selectedAmount(),
+                proof: proofFile ? proofFile.name : "",
+                proofImage,
+                referral: member ? member.referredBy : (sessionStorage.getItem(REF_KEY) || ""),
+                status: "PENDING",
+                country: payCountry()
+            };
+            store.transactions.unshift(record);
+            try {
+                writeStore(store);
+            } catch (error) {
+                store.transactions.shift();
+                statusNote.hidden = false;
+                statusNote.textContent = "That screenshot is too large. Choose a smaller image.";
+                return;
+            }
+            showPaymentState();
         });
-        writeStore(store);
-        showPaymentState();
     });
     window.addEventListener("storage", (event) => {
         if (event.key === PRICE_KEY) {
