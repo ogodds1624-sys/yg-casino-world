@@ -4,12 +4,15 @@ const REF_KEY = "casino-world-ref";
 const PARTNER_KEY = "casino-world-partner";
 
 const readStore = () => {
-    const empty = { members: [], transactions: [], partners: [], payouts: [] };
+    const empty = { members: [], transactions: [], partners: [], payouts: [], applications: [] };
     try {
         const saved = JSON.parse(localStorage.getItem(STORE_KEY));
         if (saved && Array.isArray(saved.members) && Array.isArray(saved.transactions) && Array.isArray(saved.partners)) {
             if (!Array.isArray(saved.payouts)) {
                 saved.payouts = [];
+            }
+            if (!Array.isArray(saved.applications)) {
+                saved.applications = [];
             }
             return saved;
         }
@@ -322,12 +325,21 @@ const renderBackend = () => {
         saveCommission.type = "button";
         saveCommission.className = "copy";
         saveCommission.textContent = partner.commissionLocked ? "Saved" : "Save";
+        const editCommission = document.createElement("button");
+        editCommission.type = "button";
+        editCommission.className = "copy";
+        editCommission.textContent = "Edit";
         const lockCommission = (locked) => {
             commission.disabled = locked;
             saveCommission.disabled = locked;
             saveCommission.textContent = locked ? "Saved" : "Save";
+            editCommission.hidden = !locked;
         };
         lockCommission(Boolean(partner.commissionLocked));
+        editCommission.addEventListener("click", () => {
+            lockCommission(false);
+            commission.focus();
+        });
         commission.addEventListener("input", () => {
             if (!commission.disabled) {
                 paintEarnings(commission.value);
@@ -350,7 +362,7 @@ const renderBackend = () => {
         const commissionCell = document.createElement("td");
         const commissionWrap = document.createElement("div");
         commissionWrap.className = "commission-lock";
-        commissionWrap.append(commission, saveCommission);
+        commissionWrap.append(commission, saveCommission, editCommission);
         commissionCell.append(commissionWrap);
         paintEarnings(partner.commission);
         const action = document.createElement("td");
@@ -385,6 +397,69 @@ const renderBackend = () => {
         partnerBody.append(row);
     });
     document.getElementById("partners-empty").hidden = store.partners.length !== 0;
+
+    const applicationBody = document.getElementById("application-body");
+    if (applicationBody) {
+        applicationBody.replaceChildren();
+        store.applications.forEach((item) => {
+            const when = new Date(item.appliedAt);
+            const row = document.createElement("tr");
+            row.dataset.keep = "yes";
+            const action = document.createElement("td");
+            if (item.status === "PENDING") {
+                const actions = document.createElement("div");
+                actions.className = "application-actions";
+                const approve = document.createElement("button");
+                approve.type = "button";
+                approve.className = "copy";
+                approve.textContent = "Approve";
+                const reject = document.createElement("button");
+                reject.type = "button";
+                reject.className = "copy is-delete";
+                reject.textContent = "Reject";
+                const decide = (status) => {
+                    const next = readStore();
+                    const saved = next.applications.find((entry) => entry.id === item.id);
+                    if (!saved || saved.status !== "PENDING") {
+                        return;
+                    }
+                    saved.status = status;
+                    if (status === "APPROVED" && !next.partners.some((partner) => partner.email.toLowerCase() === saved.email.toLowerCase())) {
+                        next.partners.unshift({
+                            id: saved.id,
+                            name: saved.name,
+                            email: saved.email,
+                            password: saved.password,
+                            referral: "",
+                            commission: 0
+                        });
+                    }
+                    writeStore(next);
+                    renderBackend();
+                };
+                approve.addEventListener("click", () => {
+                    decide("APPROVED");
+                });
+                reject.addEventListener("click", () => {
+                    decide("REJECTED");
+                });
+                actions.append(approve, reject);
+                action.append(actions);
+            } else {
+                action.textContent = "—";
+            }
+            const statusText = item.status === "APPROVED" ? "Approved" : item.status === "REJECTED" ? "Rejected" : "Pending";
+            row.append(
+                stackCell(when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time"),
+                stackCell(item.name, item.email, "member-name", "member-email"),
+                textCell(item.name + " wants to become a partner."),
+                textCell(statusText),
+                action
+            );
+            applicationBody.append(row);
+        });
+        document.getElementById("applications-empty").hidden = store.applications.length !== 0;
+    }
 
     const payoutBody = document.getElementById("payout-request-body");
     if (payoutBody) {
@@ -542,8 +617,16 @@ if (partnerTabs.length) {
         const store = readStore();
         const partner = store.partners.find((item) => item.email.toLowerCase() === email);
         const error = document.getElementById("partner-sign-in-error");
+        const application = store.applications.find((item) => item.email.toLowerCase() === email);
         if (!partner || (partner.password && partner.password !== password)) {
             if (error) {
+                if (!partner && application && application.status === "PENDING") {
+                    error.textContent = "Your application is waiting for admin approval.";
+                } else if (!partner && application && application.status === "REJECTED") {
+                    error.textContent = "Your application was rejected.";
+                } else {
+                    error.textContent = "That email or password is not correct.";
+                }
                 error.hidden = false;
             }
             return;
@@ -560,6 +643,52 @@ if (partnerTabs.length) {
     });
     partnerJoin.addEventListener("submit", (event) => {
         event.preventDefault();
+        const data = new FormData(partnerJoin);
+        const name = String(data.get("name")).trim();
+        const email = String(data.get("email")).trim();
+        const password = String(data.get("password"));
+        const note = document.getElementById("partner-join-note");
+        const showNote = (message, isError) => {
+            if (!note) {
+                return;
+            }
+            note.textContent = message;
+            note.classList.toggle("is-error", isError);
+            note.hidden = false;
+        };
+        if (!name || !email || password.length < 6) {
+            showNote("Enter your full name, email, and a password of at least 6 characters.", true);
+            return;
+        }
+        const store = readStore();
+        if (store.partners.some((item) => item.email.toLowerCase() === email.toLowerCase())) {
+            showNote("This email is already a partner. Sign in instead.", true);
+            return;
+        }
+        const existing = store.applications.find((item) => item.email.toLowerCase() === email.toLowerCase());
+        if (existing && existing.status === "PENDING") {
+            showNote("Your application is already with the admin.", true);
+            return;
+        }
+        if (existing) {
+            existing.name = name;
+            existing.email = email;
+            existing.password = password;
+            existing.status = "PENDING";
+            existing.appliedAt = new Date().toISOString();
+        } else {
+            store.applications.unshift({
+                id: Date.now().toString(36),
+                name,
+                email,
+                password,
+                status: "PENDING",
+                appliedAt: new Date().toISOString()
+            });
+        }
+        writeStore(store);
+        partnerJoin.reset();
+        showNote("Your application was sent to the admin.", false);
     });
 
     const partnerStart = window.location.hash.replace("#", "");

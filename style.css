@@ -1240,6 +1240,25 @@ button.copy.is-delete:hover {
     color: var(--muted);
 }
 
+#partner-join-note {
+    margin: 0 0 12px;
+    color: var(--gold);
+}
+
+#partner-join-note.is-error {
+    color: #e24b4b;
+}
+
+.application-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.application-actions button.copy {
+    margin-left: 0;
+}
+
 .partner-access .back-link {
     display: flex;
     width: 100%;
@@ -1503,6 +1522,7 @@ button.copy.is-delete:hover {
 .revenue-section h2,
 .testimonies h2,
 .partner-add h2,
+.members-panel h2,
 .settings-card h2 {
     margin: 0 0 8px;
     color: var(--gold);
@@ -1824,6 +1844,10 @@ button:disabled:hover {
 
 .commission-lock button.copy {
     margin-left: 0;
+}
+
+.commission-lock button[hidden] {
+    display: none;
 }
 
 .commission-input:disabled {
