@@ -293,7 +293,7 @@ const renderBackend = () => {
     });
     document.getElementById("transactions-empty").hidden = store.transactions.length !== 0;
 
-    const partnerBody = document.querySelector("#panel-partners .members tbody");
+    const partnerBody = document.getElementById("partner-body");
     partnerBody.replaceChildren();
     store.partners.forEach((partner) => {
         const row = document.createElement("tr");
@@ -399,9 +399,14 @@ const renderBackend = () => {
     document.getElementById("partners-empty").hidden = store.partners.length !== 0;
 
     const applicationBody = document.getElementById("application-body");
+    const applicationCard = document.getElementById("partner-applications");
     if (applicationBody) {
+        const waiting = store.applications.filter((item) => item.status === "PENDING" || item.status === "REJECTED");
+        if (applicationCard) {
+            applicationCard.hidden = waiting.length === 0;
+        }
         applicationBody.replaceChildren();
-        store.applications.forEach((item) => {
+        waiting.forEach((item) => {
             const when = new Date(item.appliedAt);
             const row = document.createElement("tr");
             row.dataset.keep = "yes";
@@ -423,16 +428,20 @@ const renderBackend = () => {
                     if (!saved || saved.status !== "PENDING") {
                         return;
                     }
-                    saved.status = status;
-                    if (status === "APPROVED" && !next.partners.some((partner) => partner.email.toLowerCase() === saved.email.toLowerCase())) {
-                        next.partners.unshift({
-                            id: saved.id,
-                            name: saved.name,
-                            email: saved.email,
-                            password: saved.password,
-                            referral: "",
-                            commission: 0
-                        });
+                    if (status === "APPROVED") {
+                        if (!next.partners.some((partner) => partner.email.toLowerCase() === saved.email.toLowerCase())) {
+                            next.partners.unshift({
+                                id: saved.id,
+                                name: saved.name,
+                                email: saved.email,
+                                password: saved.password,
+                                referral: "",
+                                commission: 0
+                            });
+                        }
+                        next.applications = next.applications.filter((entry) => entry.id !== saved.id);
+                    } else {
+                        saved.status = status;
                     }
                     writeStore(next);
                     renderBackend();
@@ -458,7 +467,7 @@ const renderBackend = () => {
             );
             applicationBody.append(row);
         });
-        document.getElementById("applications-empty").hidden = store.applications.length !== 0;
+        document.getElementById("applications-empty").hidden = waiting.length !== 0;
     }
 
     const payoutBody = document.getElementById("payout-request-body");
