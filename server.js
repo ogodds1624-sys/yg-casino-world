@@ -177,11 +177,12 @@ const server = http.createServer((req, res) => {
                 sendJson(res, 409, doc);
                 return;
             }
+            const keepObject = (incoming, current) => incoming && typeof incoming === "object" ? incoming : current;
             doc = normalizeDoc({
                 rev: doc.rev + 1,
                 store: body.store,
-                prices: body.prices,
-                gateways: body.gateways
+                prices: keepObject(body.prices, doc.prices),
+                gateways: keepObject(body.gateways, doc.gateways)
             });
             saveDoc();
             broadcast();

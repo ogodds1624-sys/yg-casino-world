@@ -145,8 +145,8 @@ const sendPush = async () => {
             const payload = {
                 baseRev,
                 store: readStore(),
-                prices: readPrices(),
-                gateways: readGateways()
+                prices: pricesForSync(),
+                gateways: gatewaysForSync()
             };
             const body = JSON.stringify(payload);
             const response = await fetch(DB_URL, {
@@ -239,7 +239,9 @@ const pullSharedDb = async (attempt = 0) => {
 };
 
 const startSharedDb = () => {
-    const ready = pullSharedDb().catch(() => {});
+    const ready = pullSharedDb().catch(() => {
+        window.dispatchEvent(new Event("casino-db-ready"));
+    });
     if (window.EventSource) {
         const source = new EventSource(DB_URL + "/stream");
         source.onmessage = (event) => {
@@ -1754,6 +1756,30 @@ const defaultPrices = {
     mins: [3, 10, 15]
 };
 
+function pricesForSync() {
+    try {
+        const saved = JSON.parse(localStorage.getItem("casino-world-prices"));
+        if (saved && Array.isArray(saved.gh) && saved.gh.length === 3 && Array.isArray(saved.ngn) && saved.ngn.length === 3) {
+            return saved;
+        }
+    } catch (error) {
+        return null;
+    }
+    return null;
+}
+
+function gatewaysForSync() {
+    try {
+        const saved = JSON.parse(localStorage.getItem("casino-world-gateways"));
+        if (saved && saved.momo && saved.bank) {
+            return saved;
+        }
+    } catch (error) {
+        return null;
+    }
+    return null;
+}
+
 const readPrices = () => {
     const fallback = {
         gh: defaultPrices.gh.slice(),
@@ -1761,8 +1787,8 @@ const readPrices = () => {
         mins: defaultPrices.mins.slice()
     };
     try {
-        const saved = JSON.parse(localStorage.getItem(PRICE_KEY));
-        if (saved && Array.isArray(saved.gh) && saved.gh.length === 3 && Array.isArray(saved.ngn) && saved.ngn.length === 3) {
+        const saved = pricesForSync();
+        if (saved) {
             let mins = Array.isArray(saved.mins) && saved.mins.length === 3 ? saved.mins.map(Number) : fallback.mins;
             if (mins.length === 3 && mins.every((value, index) => value === [3, 5, 7][index])) {
                 mins = [3, 10, 15];
@@ -1839,17 +1865,7 @@ const gatewayGroups = {
     bank: ["bank", "account", "name"]
 };
 
-const readGateways = () => {
-    try {
-        const saved = JSON.parse(localStorage.getItem(GATEWAY_KEY));
-        if (saved && saved.momo && saved.bank) {
-            return saved;
-        }
-    } catch (error) {
-        return null;
-    }
-    return null;
-};
+const readGateways = () => gatewaysForSync();
 
 const paymentForm = document.getElementById("payment-form");
 const applyPayDetails = () => {
@@ -2347,22 +2363,9 @@ if (adminLock) {
     }
     const saveGateways = document.getElementById("save-gateways");
     if (saveGateways) {
+        saveGateways.disabled = true;
         const savedGateways = readGateways();
-        const presetMomo = {
-            network: "Telecel Cash",
-            number: "0502352531",
-            name: "Patrick Agbavitor"
-        };
         if (savedGateways) {
-            const momo = savedGateways.momo;
-            const stillPreset = momo.network === presetMomo.network
-                && momo.number === presetMomo.number
-                && momo.name === presetMomo.name;
-            if (stillPreset) {
-                savedGateways.momo = { network: "", number: "", name: "" };
-                localStorage.setItem(GATEWAY_KEY, JSON.stringify(savedGateways));
-                queueSharedPush();
-            }
             Object.entries(gatewayGroups).forEach(([group, fields]) => {
                 fields.forEach((field) => {
                     const input = document.getElementById(group + "-" + field);
@@ -2415,6 +2418,7 @@ if (adminLock) {
             }
         });
         window.addEventListener("casino-db-ready", () => {
+            saveGateways.disabled = false;
             const latestPrices = readPrices();
             const latestGateways = readGateways();
             ["gh", "ngn"].forEach((country) => {
