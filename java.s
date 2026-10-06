@@ -22,8 +22,224 @@ const readStore = () => {
     return empty;
 };
 
+const DB_URL = window.CASINO_WORLD_DB_URL || "/api/db";
+let baseRev = 0;
+let baseDoc = null;
+let pushChain = Promise.resolve();
+let pushing = false;
+
+const cloneDoc = (value) => JSON.parse(JSON.stringify(value));
+
+const recordKey = (item, index) => {
+    if (item && item.id) {
+        return "id:" + item.id;
+    }
+    if (item && item.email) {
+        return "email:" + String(item.email).toLowerCase();
+    }
+    return "row:" + index;
+};
+
+const mergeList = (baseList, localList, remoteList) => {
+    const base = new Map();
+    const local = new Map();
+    const remote = new Map();
+    (baseList || []).forEach((item, index) => base.set(recordKey(item, index), item));
+    (localList || []).forEach((item, index) => local.set(recordKey(item, index), item));
+    (remoteList || []).forEach((item, index) => remote.set(recordKey(item, index), item));
+    const result = [];
+    const seen = new Set();
+    const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+    (remoteList || []).forEach((item, index) => {
+        const key = recordKey(item, index);
+        const previous = base.get(key);
+        const ours = local.get(key);
+        seen.add(key);
+        if (ours && previous && !same(ours, previous)) {
+            result.push(ours);
+            return;
+        }
+        if (!ours && previous && same(item, previous)) {
+            return;
+        }
+        result.push(item);
+    });
+    (localList || []).forEach((item, index) => {
+        const key = recordKey(item, index);
+        if (seen.has(key)) {
+            return;
+        }
+        const previous = base.get(key);
+        if (!previous || !same(item, previous)) {
+            result.push(item);
+        }
+    });
+    return result;
+};
+
+const mergeDocs = (base, local, remote) => {
+    const baseStore = base && base.store ? base.store : { members: [], transactions: [], partners: [], payouts: [], applications: [] };
+    const localStore = local.store;
+    const remoteStore = remote.store;
+    const pick = (baseValue, localValue, remoteValue) => {
+        if (!remoteValue) {
+            return localValue || null;
+        }
+        if (localValue && JSON.stringify(localValue) !== JSON.stringify(baseValue || null)) {
+            return localValue;
+        }
+        return remoteValue;
+    };
+    return {
+        rev: remote.rev,
+        store: {
+            members: mergeList(baseStore.members, localStore.members, remoteStore.members),
+            transactions: mergeList(baseStore.transactions, localStore.transactions, remoteStore.transactions),
+            partners: mergeList(baseStore.partners, localStore.partners, remoteStore.partners),
+            payouts: mergeList(baseStore.payouts, localStore.payouts, remoteStore.payouts),
+            applications: mergeList(baseStore.applications, localStore.applications, remoteStore.applications)
+        },
+        prices: pick(base && base.prices, local.prices, remote.prices),
+        gateways: pick(base && base.gateways, local.gateways, remote.gateways)
+    };
+};
+
+const applyDoc = (doc, notify) => {
+    if (!doc || !doc.store || !Number.isFinite(Number(doc.rev))) {
+        return;
+    }
+    if (baseDoc && Number(doc.rev) === baseRev && JSON.stringify(baseDoc.store) === JSON.stringify(doc.store)) {
+        return;
+    }
+    baseRev = Number(doc.rev);
+    baseDoc = cloneDoc(doc);
+    const store = doc.store;
+    if (!Array.isArray(store.payouts)) {
+        store.payouts = [];
+    }
+    if (!Array.isArray(store.applications)) {
+        store.applications = [];
+    }
+    localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    if (doc.prices) {
+        localStorage.setItem(PRICE_KEY, JSON.stringify(doc.prices));
+    }
+    if (doc.gateways) {
+        localStorage.setItem(GATEWAY_KEY, JSON.stringify(doc.gateways));
+    }
+    if (notify) {
+        window.dispatchEvent(new StorageEvent("storage", { key: STORE_KEY }));
+        window.dispatchEvent(new StorageEvent("storage", { key: PRICE_KEY }));
+        window.dispatchEvent(new StorageEvent("storage", { key: GATEWAY_KEY }));
+        window.dispatchEvent(new Event("casino-db-ready"));
+    }
+};
+
+const sendPush = async () => {
+    pushing = true;
+    try {
+        let attempt = 0;
+        while (attempt < 4) {
+            attempt += 1;
+            const payload = {
+                baseRev,
+                store: readStore(),
+                prices: readPrices(),
+                gateways: readGateways()
+            };
+            const response = await fetch(DB_URL, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (response.status === 409) {
+                const remote = await response.json();
+                const merged = mergeDocs(baseDoc || { store: { members: [], transactions: [], partners: [], payouts: [], applications: [] }, prices: null, gateways: null, rev: remote.rev }, payload, remote);
+                localStorage.setItem(STORE_KEY, JSON.stringify(merged.store));
+                if (merged.prices) {
+                    localStorage.setItem(PRICE_KEY, JSON.stringify(merged.prices));
+                }
+                if (merged.gateways) {
+                    localStorage.setItem(GATEWAY_KEY, JSON.stringify(merged.gateways));
+                }
+                baseRev = Number(remote.rev);
+                baseDoc = cloneDoc(remote);
+                continue;
+            }
+            if (!response.ok) {
+                return;
+            }
+            applyDoc(await response.json(), false);
+            return;
+        }
+    } catch (error) {
+        // Keep the local copy and try again on the next save or refresh.
+    } finally {
+        pushing = false;
+    }
+};
+
+const queueSharedPush = () => {
+    pushChain = pushChain.then(() => sendPush()).catch(() => {});
+};
+
 const writeStore = (store) => {
     localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    queueSharedPush();
+};
+
+const pullSharedDb = async () => {
+    const response = await fetch(DB_URL, { cache: "no-store" });
+    if (!response.ok) {
+        throw new Error("database");
+    }
+    const remote = await response.json();
+    const local = readStore();
+    const count = (store) => (store.members || []).length + (store.transactions || []).length + (store.partners || []).length + (store.payouts || []).length + (store.applications || []).length;
+    if (Number(remote.rev) === 0 && count(local) > 0 && count(remote.store || {}) === 0) {
+        baseRev = 0;
+        baseDoc = cloneDoc(remote);
+        await sendPush();
+        return;
+    }
+    if (!baseDoc && count(local) > 0 && count(remote.store || {}) > 0) {
+        const merged = mergeDocs({ store: { members: [], transactions: [], partners: [], payouts: [], applications: [] }, prices: null, gateways: null, rev: 0 }, {
+            store: local,
+            prices: readPrices(),
+            gateways: readGateways()
+        }, remote);
+        applyDoc(remote, false);
+        if (JSON.stringify(merged.store) !== JSON.stringify(remote.store)) {
+            localStorage.setItem(STORE_KEY, JSON.stringify(merged.store));
+            await sendPush();
+            window.dispatchEvent(new StorageEvent("storage", { key: STORE_KEY }));
+            window.dispatchEvent(new Event("casino-db-ready"));
+            return;
+        }
+    }
+    applyDoc(remote, true);
+};
+
+const startSharedDb = () => {
+    const ready = pullSharedDb().catch(() => {});
+    if (window.EventSource) {
+        const source = new EventSource(DB_URL + "/stream");
+        source.onmessage = (event) => {
+            if (pushing) {
+                return;
+            }
+            try {
+                const next = JSON.parse(event.data);
+                if (!next || Number(next.rev) <= baseRev) {
+                    return;
+                }
+                applyDoc(next, true);
+            } catch (error) {
+                // Ignore a broken live update. The next load fetches the database again.
+            }
+        };
+    }
+    return ready;
 };
 
 const goTo = (url) => {
@@ -1373,13 +1589,27 @@ if (loginForm) {
     }
     loginForm.addEventListener("submit", (event) => {
         event.preventDefault();
-        const email = String(new FormData(loginForm).get("email")).trim().toLowerCase();
+        const data = new FormData(loginForm);
+        const email = String(data.get("email")).trim().toLowerCase();
+        const password = String(data.get("password"));
+        const error = document.getElementById("login-error");
         const store = readStore();
-        const member = store.members.find((item) => item.email.toLowerCase() === email);
-        if (member) {
-            rememberMember(member.id);
+        const member = store.members.find((item) => item.email && item.email.toLowerCase() === email);
+        if (!member || (member.password && member.password !== password)) {
+            if (error) {
+                error.hidden = false;
+            }
+            return;
         }
-        goTo(member ? nextStep(member) : "country.html");
+        if (!member.password) {
+            member.password = password;
+            writeStore(store);
+        }
+        if (error) {
+            error.hidden = true;
+        }
+        rememberMember(member.id);
+        goTo(nextStep(member));
     });
 }
 
@@ -1394,13 +1624,15 @@ if (signupForm) {
         const data = new FormData(signupForm);
         const name = String(data.get("full-name")).trim();
         const email = String(data.get("email")).trim();
+        const password = String(data.get("password"));
         const store = readStore();
-        let member = store.members.find((item) => item.email.toLowerCase() === email.toLowerCase());
+        let member = store.members.find((item) => item.email && item.email.toLowerCase() === email.toLowerCase());
         if (!member) {
             member = {
                 id: Date.now().toString(36),
                 name,
                 email,
+                password,
                 joined: new Date().toISOString(),
                 phone: "",
                 country: "",
@@ -1410,6 +1642,7 @@ if (signupForm) {
             store.members.unshift(member);
         } else {
             member.name = name;
+            member.password = password;
             if (!member.referredBy && sessionStorage.getItem(REF_KEY)) {
                 member.referredBy = sessionStorage.getItem(REF_KEY);
             }
@@ -1948,7 +2181,7 @@ if (countryForm) {
 const adminRefresh = document.getElementById("admin-refresh");
 if (adminRefresh) {
     adminRefresh.addEventListener("click", () => {
-        renderBackend();
+        pullSharedDb().then(() => renderBackend()).catch(() => renderBackend());
     });
     window.addEventListener("storage", (event) => {
         if (event.key === STORE_KEY) {
@@ -1956,12 +2189,11 @@ if (adminRefresh) {
         }
     });
     window.addEventListener("pageshow", () => {
-        renderBackend();
+        pullSharedDb().then(() => renderBackend()).catch(() => renderBackend());
     });
 }
 
-renderBackend();
-
+const startSessionClock = () => {
 if (document.body.dataset.sessionPage === "yes") {
     const country = new URLSearchParams(window.location.search).get("country") === "ngn" ? "ngn" : "gh";
     const store = readStore();
@@ -2039,6 +2271,14 @@ if (document.body.dataset.sessionPage === "yes") {
         }
     }
 }
+};
+
+startSharedDb().then(() => {
+    renderBackend();
+    applyPrices();
+    applyPayDetails();
+    startSessionClock();
+});
 
 const adminLock = document.getElementById("admin-lock");
 if (adminLock) {
@@ -2086,6 +2326,7 @@ if (adminLock) {
             if (stillPreset) {
                 savedGateways.momo = { network: "", number: "", name: "" };
                 localStorage.setItem(GATEWAY_KEY, JSON.stringify(savedGateways));
+                queueSharedPush();
             }
             Object.entries(gatewayGroups).forEach(([group, fields]) => {
                 fields.forEach((field) => {
@@ -2119,6 +2360,7 @@ if (adminLock) {
                 return Number.isFinite(value) && value > 0 ? Math.round(value) : current;
             });
             localStorage.setItem(PRICE_KEY, JSON.stringify(prices));
+            queueSharedPush();
             const note = document.getElementById("gateway-saved");
             note.hidden = false;
         });
@@ -2135,6 +2377,34 @@ if (adminLock) {
             const input = document.getElementById("time-" + (index + 1));
             if (input) {
                 input.value = String(minutes);
+            }
+        });
+        window.addEventListener("casino-db-ready", () => {
+            const latestPrices = readPrices();
+            const latestGateways = readGateways();
+            ["gh", "ngn"].forEach((country) => {
+                latestPrices[country].forEach((amount, index) => {
+                    const input = document.getElementById("price-" + country + "-" + (index + 1));
+                    if (input && document.activeElement !== input) {
+                        input.value = String(amount);
+                    }
+                });
+            });
+            latestPrices.mins.forEach((minutes, index) => {
+                const input = document.getElementById("time-" + (index + 1));
+                if (input && document.activeElement !== input) {
+                    input.value = String(minutes);
+                }
+            });
+            if (latestGateways) {
+                Object.entries(gatewayGroups).forEach(([group, fields]) => {
+                    fields.forEach((field) => {
+                        const input = document.getElementById(group + "-" + field);
+                        if (input && document.activeElement !== input && typeof latestGateways[group][field] === "string") {
+                            input.value = latestGateways[group][field];
+                        }
+                    });
+                });
             }
         });
     }
