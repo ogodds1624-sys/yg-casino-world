@@ -518,18 +518,6 @@ const readGateways = () => {
     return null;
 };
 
-const ghanaNetworks = ["MTN MoMo", "Telecel Cash", "AirtelTigo Money"];
-const nigeriaBanks = ["Access Bank", "GTBank", "Zenith Bank", "First Bank", "UBA", "OPay", "PalmPay", "Kuda", "Moniepoint", "Fidelity Bank", "FCMB", "Sterling Bank", "Wema Bank", "Union Bank", "Ecobank", "Stanbic IBTC", "Polaris Bank", "Providus Bank"];
-
-const fillChoices = (node, names) => {
-    node.replaceChildren();
-    names.forEach((name) => {
-        const line = document.createElement("span");
-        line.textContent = name;
-        node.append(line);
-    });
-};
-
 const paymentForm = document.getElementById("payment-form");
 const applyPayDetails = () => {
     const numberNode = document.getElementById("momo-number");
@@ -545,18 +533,14 @@ const applyPayDetails = () => {
     if (payNgn) {
         const bank = savedGateways ? savedGateways.bank : { bank: "", account: "", name: "" };
         if (networkValue) {
-            if (bank.bank) {
-                networkValue.textContent = bank.bank;
-            } else {
-                fillChoices(networkValue, nigeriaBanks);
-            }
+            networkValue.textContent = bank.bank;
         }
-        numberNode.textContent = bank.account || "Account number";
+        numberNode.textContent = bank.account;
         if (nameValue) {
-            nameValue.textContent = bank.name || "Account name";
+            nameValue.textContent = bank.name;
         }
         if (payNetwork) {
-            payNetwork.textContent = bank.bank || "any of the banks above";
+            payNetwork.textContent = bank.bank || "bank";
         }
         const networkLabel = document.querySelector('.momo-row[data-slot="network"] .label');
         const numberLabel = document.querySelector('.momo-row[data-slot="number"] .label');
@@ -576,23 +560,16 @@ const applyPayDetails = () => {
         }
         return;
     }
-    if (!savedGateways) {
-        return;
-    }
-    const momo = savedGateways.momo;
+    const momo = savedGateways ? savedGateways.momo : { network: "", number: "", name: "" };
     if (networkValue) {
-        if (momo.network) {
-            networkValue.textContent = momo.network;
-        } else {
-            fillChoices(networkValue, ghanaNetworks);
-        }
+        networkValue.textContent = momo.network;
     }
-    numberNode.textContent = momo.number || "MoMo number";
+    numberNode.textContent = momo.number;
     if (nameValue) {
-        nameValue.textContent = momo.name || "Account name";
+        nameValue.textContent = momo.name;
     }
     if (payNetwork) {
-        payNetwork.textContent = momo.network || "MTN MoMo, Telecel Cash, or AirtelTigo Money";
+        payNetwork.textContent = momo.network || "MoMo";
     }
 };
 if (paymentForm) {
