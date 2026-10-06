@@ -19,6 +19,22 @@ const writeStore = (store) => {
     localStorage.setItem(STORE_KEY, JSON.stringify(store));
 };
 
+const goTo = (url) => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+        window.location.href = url;
+        return;
+    }
+    document.body.classList.add("is-leaving");
+    window.setTimeout(() => {
+        window.location.href = url;
+    }, 180);
+};
+
+window.addEventListener("pageshow", () => {
+    document.body.classList.remove("is-leaving");
+});
+
 const currentMember = (store) => {
     return store.members.find((member) => member.id === sessionStorage.getItem(MEMBER_KEY));
 };
@@ -321,7 +337,7 @@ if (partnerTabs.length) {
     const partnerJoin = partnerForms.join;
     partnerSignIn.addEventListener("submit", (event) => {
         event.preventDefault();
-        window.location.href = "partner.html";
+        goTo("partner.html");
     });
     partnerJoin.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -391,7 +407,7 @@ if (loginForm) {
         if (member) {
             sessionStorage.setItem(MEMBER_KEY, member.id);
         }
-        window.location.href = "country.html";
+        goTo("country.html");
     });
 }
 
@@ -421,7 +437,7 @@ if (signupForm) {
         }
         writeStore(store);
         sessionStorage.setItem(MEMBER_KEY, member.id);
-        window.location.href = "country.html";
+        goTo("country.html");
     });
 }
 
@@ -673,7 +689,7 @@ if (connectForm) {
             member.phone = details.dial + " " + String(new FormData(connectForm).get("phone")).trim();
             writeStore(store);
         }
-        window.location.href = connectForm.action;
+        goTo(connectForm.action);
     });
 }
 
@@ -788,3 +804,57 @@ if (predictionFeed) {
         }
     }, 1700);
 }
+
+document.addEventListener("click", (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.defaultPrevented) {
+        return;
+    }
+    const link = event.target.closest("a[href]");
+    if (!link || (link.target && link.target !== "_self") || link.hasAttribute("download")) {
+        return;
+    }
+    const href = link.getAttribute("href");
+    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+        return;
+    }
+    let next;
+    try {
+        next = new URL(link.href);
+    } catch (error) {
+        return;
+    }
+    if (next.origin !== window.location.origin) {
+        return;
+    }
+    if (next.pathname === window.location.pathname && next.search === window.location.search) {
+        return;
+    }
+    event.preventDefault();
+    goTo(next.href);
+});
+
+document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || event.defaultPrevented || (form.target && form.target !== "_self")) {
+        return;
+    }
+    const action = form.getAttribute("action") || window.location.href;
+    if (action.startsWith("#")) {
+        return;
+    }
+    let next;
+    try {
+        next = new URL(action, window.location.href);
+    } catch (error) {
+        return;
+    }
+    if (next.origin !== window.location.origin) {
+        return;
+    }
+    if ((form.method || "get").toLowerCase() === "get") {
+        const data = new FormData(form, event.submitter);
+        next.search = new URLSearchParams(data).toString();
+    }
+    event.preventDefault();
+    goTo(next.href);
+});
