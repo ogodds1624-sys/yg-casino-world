@@ -37,6 +37,24 @@
                 <button type="button" id="admin-refresh">Refresh</button>
             </section>
             <section class="admin-note" hidden></section>
+            <section class="card members-panel" id="overview-applications" data-application-card hidden>
+                <h2>Partner applications</h2>
+                <div class="members-wrap">
+                    <table class="members">
+                        <thead>
+                            <tr>
+                                <th>Applied</th>
+                                <th>Applicant</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody data-application-body></tbody>
+                    </table>
+                </div>
+                <p class="members-empty" data-applications-empty>No applications yet.</p>
+            </section>
             <section class="admin-stats">
                 <div class="card">
                     <h3>Total Visits</h3>
@@ -202,7 +220,7 @@
                         <h1>Partners</h1>
                     </div>
                 </section>
-                <section class="card members-panel" id="partner-applications" hidden>
+                <section class="card members-panel" id="partner-applications" data-application-card hidden>
                     <h2>Partner applications</h2>
                     <div class="members-wrap">
                         <table class="members">
@@ -215,10 +233,10 @@
                                     <th>Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="application-body"></tbody>
+                            <tbody id="application-body" data-application-body></tbody>
                         </table>
                     </div>
-                    <p class="members-empty" id="applications-empty">No applications yet.</p>
+                    <p class="members-empty" id="applications-empty" data-applications-empty>No applications yet.</p>
                 </section>
                 <section class="card members-panel partner-add">
                     <h2>Add a partner</h2>

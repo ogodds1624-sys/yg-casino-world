@@ -2064,6 +2064,34 @@ button:disabled:hover {
     margin-bottom: 40px;
 }
 
+[data-application-card][hidden] {
+    display: none;
+}
+
+@media (max-width: 560px) {
+    [data-application-card] .members thead {
+        display: none;
+    }
+
+    [data-application-card] .members,
+    [data-application-card] .members tbody,
+    [data-application-card] .members tr,
+    [data-application-card] .members td {
+        display: block;
+        width: 100%;
+    }
+
+    [data-application-card] .members tr {
+        padding: 8px 0 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    [data-application-card] .members td {
+        padding: 8px 0;
+        border-top: 0;
+    }
+}
+
 .member-search {
     display: block;
     margin-bottom: 18px;

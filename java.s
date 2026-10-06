@@ -707,13 +707,20 @@ const renderBackend = () => {
     });
     document.getElementById("partners-empty").hidden = store.partners.length !== 0;
 
-    const applicationBody = document.getElementById("application-body");
-    const applicationCard = document.getElementById("partner-applications");
-    if (applicationBody) {
-        const waiting = store.applications.filter((item) => item.status === "PENDING" || item.status === "REJECTED");
-        if (applicationCard) {
-            applicationCard.hidden = waiting.length === 0;
+    const applications = Array.isArray(store.applications) ? store.applications : [];
+    const waiting = applications.filter((item) => item.status === "PENDING" || item.status === "REJECTED");
+    const partnerTab = document.querySelector('.admin-nav [data-panel="partners"]');
+    if (partnerTab) {
+        const pendingCount = applications.filter((item) => item.status === "PENDING").length;
+        partnerTab.textContent = pendingCount ? "Partners (" + pendingCount + ")" : "Partners";
+    }
+    document.querySelectorAll("[data-application-card]").forEach((applicationCard) => {
+        const applicationBody = applicationCard.querySelector("[data-application-body]");
+        const applicationEmpty = applicationCard.querySelector("[data-applications-empty]");
+        if (!applicationBody) {
+            return;
         }
+        applicationCard.hidden = waiting.length === 0;
         applicationBody.replaceChildren();
         waiting.forEach((item) => {
             const when = new Date(item.appliedAt);
@@ -733,7 +740,7 @@ const renderBackend = () => {
                 reject.textContent = "Reject";
                 const decide = (status) => {
                     const next = readStore();
-                    const saved = next.applications.find((entry) => entry.id === item.id);
+                    const saved = Array.isArray(next.applications) ? next.applications.find((entry) => entry.id === item.id) : null;
                     if (!saved || saved.status !== "PENDING") {
                         return;
                     }
@@ -766,18 +773,23 @@ const renderBackend = () => {
             } else {
                 action.textContent = "—";
             }
+            const whenOk = !Number.isNaN(when.getTime());
             const statusText = item.status === "APPROVED" ? "Approved" : item.status === "REJECTED" ? "Rejected" : "Pending";
             row.append(
-                stackCell(when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time"),
+                whenOk
+                    ? stackCell(when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), "joined-date", "joined-time")
+                    : textCell("—"),
                 stackCell(item.name, item.email, "member-name", "member-email"),
-                textCell(item.name + " wants to become a partner."),
+                textCell((item.name || "Someone") + " wants to become a partner."),
                 textCell(statusText),
                 action
             );
             applicationBody.append(row);
         });
-        document.getElementById("applications-empty").hidden = waiting.length !== 0;
-    }
+        if (applicationEmpty) {
+            applicationEmpty.hidden = waiting.length !== 0;
+        }
+    });
 
     const payoutBody = document.getElementById("payout-request-body");
     if (payoutBody) {
@@ -1912,6 +1924,14 @@ if (countryForm) {
 const adminRefresh = document.getElementById("admin-refresh");
 if (adminRefresh) {
     adminRefresh.addEventListener("click", () => {
+        renderBackend();
+    });
+    window.addEventListener("storage", (event) => {
+        if (event.key === STORE_KEY) {
+            renderBackend();
+        }
+    });
+    window.addEventListener("pageshow", () => {
         renderBackend();
     });
 }
