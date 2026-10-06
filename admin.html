@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="Casino World admin overview.">
-        <title>Casino World Admin</title>
+        <title>Admin Control Panel - Casino World</title>
         <link rel="stylesheet" href="style.css">
     </head>
     <body class="admin">
@@ -24,7 +24,7 @@
                 <button type="button" data-panel="members">Members</button>
                 <button type="button" data-panel="transactions">Transactions</button>
                 <button type="button" data-panel="partners">Partners</button>
-                <a class="button" href="index.html">Site</a>
+                <a class="button" href="settings.html">Settings</a>
             </nav>
         </header>
         <main class="admin-main" hidden>
@@ -53,6 +53,16 @@
                 <div class="card">
                     <h3>Total Ghana</h3>
                     <p class="amount" id="stat-total-gh">0</p>
+                    <p>Does not reset</p>
+                </div>
+                <div class="card">
+                    <h3>Daily Nigeria</h3>
+                    <p class="amount" id="stat-daily-ng">₦0</p>
+                    <p>Tue 6 Oct • resets at midnight</p>
+                </div>
+                <div class="card">
+                    <h3>Total Nigeria</h3>
+                    <p class="amount" id="stat-total-ng">₦0</p>
                     <p>Does not reset</p>
                 </div>
             </section>
@@ -87,18 +97,6 @@
                         <span>Mon 5 Oct</span>
                         <span class="revenue-amount">GHS 0</span>
                     </div>
-                </div>
-            </section>
-            <section class="cards">
-                <div class="card">
-                    <h3>Daily Nigeria</h3>
-                    <p class="amount" id="stat-daily-ng">₦0</p>
-                    <p>Tue 6 Oct • resets at midnight</p>
-                </div>
-                <div class="card">
-                    <h3>Total Nigeria</h3>
-                    <p class="amount" id="stat-total-ng">₦0</p>
-                    <p>Does not reset</p>
                 </div>
             </section>
             <section class="revenue-section card">
@@ -211,19 +209,19 @@
                     <form id="add-partner-form" class="partner-form">
                         <label>
                             Name
-                            <input type="text" name="name" autocomplete="name" required>
+                            <input type="text" name="name" autocomplete="name" placeholder="Partner name" required>
                         </label>
                         <label>
                             Email
-                            <input type="email" name="email" autocomplete="email" required>
+                            <input type="email" name="email" autocomplete="email" placeholder="name@email.com" required>
                         </label>
                         <label>
                             Partner password
-                            <input type="password" name="password" autocomplete="new-password" minlength="6" required>
+                            <input type="password" name="password" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" required>
                         </label>
                         <label>
-                            Referral
-                            <input type="text" name="referral" autocomplete="off">
+                            <span>Referral <span>Optional</span></span>
+                            <input type="text" name="referral" autocomplete="off" placeholder="Referral code (optional)">
                         </label>
                         <button type="submit">Add partner</button>
                     </form>

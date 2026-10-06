@@ -1026,8 +1026,15 @@ button.copy:hover {
 
 .admin-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
+    margin-left: auto;
+}
+
+.admin-nav button,
+.admin-nav a.button {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .admin-nav .is-on {
@@ -1068,7 +1075,8 @@ button.copy:hover {
 .admin-note h2,
 .revenue-section h2,
 .testimonies h2,
-.partner-add h2 {
+.partner-add h2,
+.settings-card h2 {
     margin: 0 0 8px;
     color: var(--gold);
     letter-spacing: 0.04em;
@@ -1084,6 +1092,91 @@ button.copy:hover {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
     margin-bottom: 16px;
+}
+
+.admin-stats {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.admin-stats .card {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+.settings-gateways {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.settings-card p {
+    margin: 8px 0 0;
+}
+
+.gateway-list {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gateway-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gateway-list label {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.gateway-list input,
+.gateway-list select {
+    width: 58%;
+    min-height: 36px;
+    margin: 0;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 7px;
+    background: #0b100e;
+    color: #f5f3eb;
+    font: inherit;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-align: right;
+    text-align-last: right;
+    text-transform: none;
+}
+
+.gateway-list label span {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.network-choices span {
+    display: block;
+}
+
+.gateway-list input:focus,
+.gateway-list select:focus {
+    border-color: var(--gold);
+    outline: 2px solid rgba(232, 189, 98, 0.35);
+}
+
+.gateway-list input::placeholder {
+    color: var(--muted);
+    opacity: 1;
+}
+
+.gateway-saved {
+    margin: 0 0 12px;
+    color: var(--gold);
 }
 
 .admin .card h3 {
@@ -1270,6 +1363,10 @@ button.copy:hover {
     text-transform: uppercase;
 }
 
+.partner-form label span {
+    font-weight: 500;
+}
+
 .partner-form input,
 .partner-form select {
     width: 100%;
@@ -1284,6 +1381,11 @@ button.copy:hover {
     font-weight: 400;
     letter-spacing: 0;
     text-transform: none;
+}
+
+.partner-form input::placeholder {
+    color: var(--muted);
+    opacity: 1;
 }
 
 .partner-form input:focus,
@@ -1304,10 +1406,26 @@ button.copy:hover {
 
     .admin-header {
         flex-wrap: wrap;
+        gap: 10px;
     }
 
     .admin-header h2 {
         flex: 1 0 100%;
+        margin: 0;
+    }
+
+    .admin-nav {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .admin-nav button,
+    .admin-nav a.button {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 36px;
+        padding: 0 6px;
+        font-size: 0.68rem;
     }
 
     .admin-intro {
@@ -1319,9 +1437,24 @@ button.copy:hover {
         flex-direction: column;
     }
 
-    .admin-stats,
     .admin .cards {
         grid-template-columns: 1fr;
+    }
+
+    .settings-gateways {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-stats {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        overflow-x: auto;
+    }
+
+    .admin-stats .card {
+        flex: 0 0 168px;
+        padding: 16px;
     }
 
     .partner-form {

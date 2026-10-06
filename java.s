@@ -484,9 +484,110 @@ if (receipt && receiptTitle && receiptZone) {
     });
 }
 
+const GATEWAY_KEY = "casino-world-gateways";
+const gatewayGroups = {
+    momo: ["network", "number", "name"],
+    bank: ["bank", "account", "name"]
+};
+
+const readGateways = () => {
+    try {
+        const saved = JSON.parse(localStorage.getItem(GATEWAY_KEY));
+        if (saved && saved.momo && saved.bank) {
+            return saved;
+        }
+    } catch (error) {
+        return null;
+    }
+    return null;
+};
+
+const ghanaNetworks = ["MTN MoMo", "Telecel Cash", "AirtelTigo Money"];
+const nigeriaBanks = ["Access Bank", "GTBank", "Zenith Bank", "First Bank", "UBA", "OPay", "PalmPay", "Kuda", "Moniepoint", "Fidelity Bank", "FCMB", "Sterling Bank", "Wema Bank", "Union Bank", "Ecobank", "Stanbic IBTC", "Polaris Bank", "Providus Bank"];
+
+const fillChoices = (node, names) => {
+    node.replaceChildren();
+    names.forEach((name) => {
+        const line = document.createElement("span");
+        line.textContent = name;
+        node.append(line);
+    });
+};
+
 const paymentForm = document.getElementById("payment-form");
+const applyPayDetails = () => {
+    const numberNode = document.getElementById("momo-number");
+    if (!numberNode) {
+        return;
+    }
+    const savedGateways = readGateways();
+    const payNgn = new URLSearchParams(window.location.search).get("pay") === "ngn";
+    const slot = (name) => document.querySelector('.momo-row[data-slot="' + name + '"] .value');
+    const networkValue = slot("network");
+    const nameValue = slot("name");
+    const payNetwork = document.querySelector(".pay-network");
+    if (payNgn) {
+        const bank = savedGateways ? savedGateways.bank : { bank: "", account: "", name: "" };
+        if (networkValue) {
+            if (bank.bank) {
+                networkValue.textContent = bank.bank;
+            } else {
+                fillChoices(networkValue, nigeriaBanks);
+            }
+        }
+        numberNode.textContent = bank.account || "Account number";
+        if (nameValue) {
+            nameValue.textContent = bank.name || "Account name";
+        }
+        if (payNetwork) {
+            payNetwork.textContent = bank.bank || "any of the banks above";
+        }
+        const networkLabel = document.querySelector('.momo-row[data-slot="network"] .label');
+        const numberLabel = document.querySelector('.momo-row[data-slot="number"] .label');
+        if (networkLabel) {
+            networkLabel.textContent = "BANK";
+        }
+        if (numberLabel) {
+            numberLabel.textContent = "ACCOUNT";
+        }
+        const top = document.querySelector(".momo-top span");
+        if (top) {
+            top.textContent = "BANK TRANSFER";
+        }
+        const heading = document.querySelector(".momo-card h1");
+        if (heading) {
+            heading.textContent = "Pay by bank transfer";
+        }
+        return;
+    }
+    if (!savedGateways) {
+        return;
+    }
+    const momo = savedGateways.momo;
+    if (networkValue) {
+        if (momo.network) {
+            networkValue.textContent = momo.network;
+        } else {
+            fillChoices(networkValue, ghanaNetworks);
+        }
+    }
+    numberNode.textContent = momo.number || "MoMo number";
+    if (nameValue) {
+        nameValue.textContent = momo.name || "Account name";
+    }
+    if (payNetwork) {
+        payNetwork.textContent = momo.network || "MTN MoMo, Telecel Cash, or AirtelTigo Money";
+    }
+};
 if (paymentForm) {
-    if (new URLSearchParams(window.location.search).get("pay") === "ngn") {
+    const payNgn = new URLSearchParams(window.location.search).get("pay") === "ngn";
+    applyPayDetails();
+    window.addEventListener("storage", (event) => {
+        if (event.key === GATEWAY_KEY) {
+            applyPayDetails();
+        }
+    });
+    if (payNgn) {
         const naira = (ghs) => {
             const amount = Math.round(Number(ghs) * 119.64 * 100) / 100;
             return "₦" + amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -621,6 +722,52 @@ if (adminLock) {
             adminError.hidden = false;
         }
     });
+    const lockAgain = document.getElementById("admin-lock-again");
+    if (lockAgain) {
+        lockAgain.addEventListener("click", () => {
+            sessionStorage.removeItem("casino-world-admin");
+            window.location.reload();
+        });
+    }
+    const saveGateways = document.getElementById("save-gateways");
+    if (saveGateways) {
+        const savedGateways = readGateways();
+        const presetMomo = {
+            network: "Telecel Cash",
+            number: "0502352531",
+            name: "Patrick Agbavitor"
+        };
+        if (savedGateways) {
+            const momo = savedGateways.momo;
+            const stillPreset = momo.network === presetMomo.network
+                && momo.number === presetMomo.number
+                && momo.name === presetMomo.name;
+            if (stillPreset) {
+                savedGateways.momo = { network: "", number: "", name: "" };
+                localStorage.setItem(GATEWAY_KEY, JSON.stringify(savedGateways));
+            }
+            Object.entries(gatewayGroups).forEach(([group, fields]) => {
+                fields.forEach((field) => {
+                    const input = document.getElementById(group + "-" + field);
+                    if (input && typeof savedGateways[group][field] === "string") {
+                        input.value = savedGateways[group][field];
+                    }
+                });
+            });
+        }
+        saveGateways.addEventListener("click", () => {
+            const next = { momo: {}, bank: {} };
+            Object.entries(gatewayGroups).forEach(([group, fields]) => {
+                fields.forEach((field) => {
+                    const input = document.getElementById(group + "-" + field);
+                    next[group][field] = input ? input.value.trim() : "";
+                });
+            });
+            localStorage.setItem(GATEWAY_KEY, JSON.stringify(next));
+            const note = document.getElementById("gateway-saved");
+            note.hidden = false;
+        });
+    }
 }
 
 const predictionFeed = document.querySelector(".feed");
