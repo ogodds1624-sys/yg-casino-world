@@ -7,7 +7,13 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body data-session-page="yes">
-        <iframe class="live-frame" id="live-frame" title="Live session" src="https://baker-king-acre-ivory.grok.me"></iframe>
+        <main class="session-hold" id="session-hold">
+            <p class="kicker">Live</p>
+            <h1>Your session is open</h1>
+            <p>The live site is open in the other tab. This page sends you back to packages when the time ends.</p>
+            <p class="wait-timer" id="session-hold-timer" hidden>0:00</p>
+        </main>
+        <iframe class="live-frame" id="live-frame" title="Live session" hidden></iframe>
         <script src="java.s"></script>
     </body>
 </html>

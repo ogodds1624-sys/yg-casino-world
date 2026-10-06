@@ -47,6 +47,84 @@ const currentMember = (store) => {
 };
 
 const packagePage = (country) => country === "ngn" ? "packageN.html" : "plist.html";
+const LIVE_URL = "https://baker-king-acre-ivory.grok.me";
+const LIVE_WINDOW = "casino-live";
+
+const loadingMinutesFor = (sessionMinutes, packageIndex) => {
+    const known = { 3: 2, 10: 7, 15: 10 };
+    const minutes = Number(sessionMinutes);
+    if (known[minutes]) {
+        return known[minutes];
+    }
+    return [2, 7, 10][Number(packageIndex)] || 2;
+};
+
+const liveMinutesFor = (sessionMinutes, packageIndex) => {
+    const known = { 3: 1, 10: 3, 15: 5 };
+    const minutes = Number(sessionMinutes);
+    if (known[minutes]) {
+        return known[minutes];
+    }
+    return [1, 3, 5][Number(packageIndex)] || 1;
+};
+
+const reserveLiveWindow = () => {
+    window.name = "casino-pay";
+    let live = null;
+    try {
+        live = window.open("about:blank", LIVE_WINDOW);
+    } catch (error) {
+        live = null;
+    }
+    if (!live || live.closed) {
+        return null;
+    }
+    try {
+        const href = live.location.href;
+        if (!href || href === "about:blank") {
+            live.document.open();
+            live.document.write("<!DOCTYPE html><html><head><title>Casino World</title></head><body style=\"margin:0;background:#0b100e;color:#e8bd62;font-family:Segoe UI,Arial,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px\"><p>Your live session will open in this tab.</p></body></html>");
+            live.document.close();
+        }
+    } catch (error) {
+        // The live tab is already on another site.
+    }
+    window.focus();
+    return live;
+};
+
+const openLiveSite = () => {
+    let live = null;
+    try {
+        live = window.open(LIVE_URL, LIVE_WINDOW);
+    } catch (error) {
+        live = null;
+    }
+    if (live && !live.closed) {
+        try {
+            live.focus();
+        } catch (error) {
+            // A background tab cannot always take focus.
+        }
+    }
+    return live && !live.closed ? live : null;
+};
+
+const closeLiveSite = () => {
+    let live = null;
+    try {
+        live = window.open("", LIVE_WINDOW);
+    } catch (error) {
+        live = null;
+    }
+    if (live && !live.closed) {
+        try {
+            live.close();
+        } catch (error) {
+            // The browser only closes a tab this page opened.
+        }
+    }
+};
 
 const isRegistered = (member) => Boolean(member && member.phone);
 
@@ -352,13 +430,20 @@ const renderBackend = () => {
                 return;
             }
             saved.status = nextStatus;
-            const member = next.members.find((entry) => entry.email && saved.email && entry.email.toLowerCase() === saved.email.toLowerCase());
-            if (member && nextStatus === "RECEIVED") {
-                member.status = "PAID";
+            if (nextStatus === "RECEIVED") {
                 const approvedAt = new Date();
                 saved.approvedAt = approvedAt.toISOString();
                 const sessionMinutes = Number(saved.minutes) || 3;
-                saved.sessionEndsAt = new Date(approvedAt.getTime() + sessionMinutes * 60000).toISOString();
+                const packageIndex = Number(saved.packageIndex) || 0;
+                const loadMinutes = loadingMinutesFor(sessionMinutes, packageIndex);
+                const liveMinutes = liveMinutesFor(sessionMinutes, packageIndex);
+                saved.loadMinutes = loadMinutes;
+                saved.liveMinutes = liveMinutes;
+                saved.sessionEndsAt = new Date(approvedAt.getTime() + (loadMinutes + liveMinutes) * 60000).toISOString();
+                const member = next.members.find((entry) => entry.email && saved.email && entry.email.toLowerCase() === saved.email.toLowerCase());
+                if (member) {
+                    member.status = "PAID";
+                }
             }
             writeStore(next);
             renderBackend();
@@ -1252,7 +1337,7 @@ const PRICE_KEY = "casino-world-prices";
 const defaultPrices = {
     gh: [355, 455, 555],
     ngn: [42472.2, 54436.2, 66400.2],
-    mins: [3, 5, 7]
+    mins: [3, 10, 15]
 };
 
 const readPrices = () => {
@@ -1264,10 +1349,16 @@ const readPrices = () => {
     try {
         const saved = JSON.parse(localStorage.getItem(PRICE_KEY));
         if (saved && Array.isArray(saved.gh) && saved.gh.length === 3 && Array.isArray(saved.ngn) && saved.ngn.length === 3) {
+            let mins = Array.isArray(saved.mins) && saved.mins.length === 3 ? saved.mins.map(Number) : fallback.mins;
+            if (mins.length === 3 && mins.every((value, index) => value === [3, 5, 7][index])) {
+                mins = [3, 10, 15];
+                saved.mins = mins;
+                localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
+            }
             return {
                 gh: saved.gh.map(Number),
                 ngn: saved.ngn.map(Number),
-                mins: Array.isArray(saved.mins) && saved.mins.length === 3 ? saved.mins.map(Number) : fallback.mins
+                mins
             };
         }
     } catch (error) {
@@ -1428,6 +1519,10 @@ if (paymentForm) {
     waitPopup.setAttribute("aria-labelledby", "payment-wait-title");
     const waitCard = document.createElement("div");
     waitCard.className = "wait-popup-card";
+    const waitSignal = document.createElement("div");
+    waitSignal.className = "wait-signal";
+    waitSignal.setAttribute("aria-hidden", "true");
+    waitSignal.append(document.createElement("span"), document.createElement("span"), document.createElement("span"), document.createElement("i"));
     const waitKicker = document.createElement("p");
     waitKicker.className = "kicker";
     waitKicker.textContent = "Waiting";
@@ -1438,8 +1533,9 @@ if (paymentForm) {
     waitCopy.textContent = "Your screenshot was sent. This stays here until an admin approves or rejects the payment.";
     const waitTimer = document.createElement("p");
     waitTimer.id = "payment-wait-timer";
+    waitTimer.className = "wait-timer";
     waitTimer.hidden = true;
-    waitCard.append(waitKicker, waitTitle, waitCopy, waitTimer);
+    waitCard.append(waitSignal, waitKicker, waitTitle, waitCopy, waitTimer);
     waitPopup.append(waitCard);
     document.body.append(waitPopup);
     const selectedAmount = () => document.querySelector(".amount").textContent.trim();
@@ -1478,15 +1574,6 @@ if (paymentForm) {
         return store.transactions.find((item) => item.package === amount && item.country === country && item.email.toLowerCase() === email && item.status !== "REJECTED");
     };
 
-    const loadingMinutesFor = (sessionMinutes, packageIndex) => {
-        const known = { 3: 2, 10: 7, 15: 10 };
-        const minutes = Number(sessionMinutes);
-        if (known[minutes]) {
-            return known[minutes];
-        }
-        const byPackage = [2, 7, 10];
-        return byPackage[packageIndex] || 2;
-    };
     let connectTimer = 0;
     let connectTick = 0;
     const stopConnect = () => {
@@ -1497,6 +1584,7 @@ if (paymentForm) {
     };
     const showWaiting = () => {
         stopConnect();
+        waitPopup.classList.remove("is-connecting");
         waitTimer.hidden = true;
         waitKicker.textContent = "Waiting";
         waitTitle.textContent = "Waiting for confirmation";
@@ -1513,6 +1601,7 @@ if (paymentForm) {
             const email = member ? member.email.toLowerCase() : "";
             const rejected = store.transactions.find((item) => item.package === selectedAmount() && item.country === payCountry() && item.email.toLowerCase() === email && item.status === "REJECTED");
             if (rejected) {
+                closeLiveSite();
                 goTo(packagePage(rejected.country === "ngn" ? "ngn" : "gh"));
                 return;
             }
@@ -1529,27 +1618,40 @@ if (paymentForm) {
                 return;
             }
             const approvedAt = saved.approvedAt ? new Date(saved.approvedAt).getTime() : Date.now();
-            const loadMs = loadingMinutesFor(saved.minutes, saved.packageIndex) * 60000;
+            const loadMinutes = Number(saved.loadMinutes) || loadingMinutesFor(saved.minutes, saved.packageIndex);
+            const loadMs = loadMinutes * 60000;
+            const country = saved.country === "ngn" ? "ngn" : "gh";
             const remaining = Math.max(0, approvedAt + loadMs - Date.now());
+            waitPopup.classList.add("is-connecting");
             waitKicker.textContent = "Connecting";
             waitTitle.textContent = "Connecting your phone";
             waitCopy.textContent = "We are trying to connect your phone to the server. Check your network.";
-            waitTimer.hidden = false;
+            waitTimer.hidden = true;
             waitPopup.hidden = false;
             statusNote.textContent = "Payment received.";
+            let handedOff = false;
+            const beginLive = () => {
+                if (handedOff) {
+                    return;
+                }
+                handedOff = true;
+                stopConnect();
+                openLiveSite();
+                window.location.href = "session.html?country=" + country;
+            };
             const paintTimer = () => {
                 const left = Math.max(0, approvedAt + loadMs - Date.now());
-                const totalSeconds = Math.ceil(left / 1000);
-                const minutes = Math.floor(totalSeconds / 60);
-                const seconds = totalSeconds % 60;
-                waitTimer.textContent = minutes + ":" + String(seconds).padStart(2, "0");
+                if (left <= 0) {
+                    beginLive();
+                }
             };
             stopConnect();
             paintTimer();
+            if (handedOff) {
+                return;
+            }
             connectTick = window.setInterval(paintTimer, 1000);
-            connectTimer = window.setTimeout(() => {
-                window.location.href = "session.html?country=" + (saved.country === "ngn" ? "ngn" : "gh");
-            }, remaining);
+            connectTimer = window.setTimeout(beginLive, remaining);
             return;
         }
         statusNote.textContent = "Waiting for admin confirmation.";
@@ -1571,7 +1673,8 @@ if (paymentForm) {
         if (submitButton) {
             submitButton.disabled = true;
         }
-        waitPopup.hidden = false;
+        reserveLiveWindow();
+        showWaiting();
         statusNote.hidden = false;
         statusNote.textContent = "Waiting for admin confirmation.";
         readScreenshot(proofFile).then((proofImage) => {
@@ -1706,12 +1809,74 @@ if (document.body.dataset.sessionPage === "yes") {
     const active = store.transactions.find((item) => {
         return paymentReceived(item) && member && item.email && member.email && item.email.toLowerCase() === member.email.toLowerCase() && item.sessionEndsAt && new Date(item.sessionEndsAt).getTime() > Date.now();
     });
+    const hold = document.getElementById("session-hold");
+    const frame = document.getElementById("live-frame");
+    const timerNode = document.getElementById("session-hold-timer");
     if (!active) {
+        closeLiveSite();
         goTo(packagePage(country));
     } else {
-        window.setTimeout(() => {
-            goTo(packagePage(active.country === "ngn" ? "ngn" : "gh"));
-        }, new Date(active.sessionEndsAt).getTime() - Date.now());
+        const approvedAt = active.approvedAt ? new Date(active.approvedAt).getTime() : Date.now();
+        const loadMinutes = Number(active.loadMinutes) || loadingMinutesFor(active.minutes, active.packageIndex);
+        const liveStart = approvedAt + loadMinutes * 60000;
+        const endsAt = new Date(active.sessionEndsAt).getTime();
+        const returnToPackages = () => {
+            const page = packagePage(active.country === "ngn" ? "ngn" : "gh");
+            let live = null;
+            try {
+                live = window.open("", LIVE_WINDOW);
+            } catch (error) {
+                live = null;
+            }
+            if (live && !live.closed) {
+                try {
+                    live.close();
+                } catch (error) {
+                    // The browser only closes a tab this page opened.
+                }
+            }
+            if (live && !live.closed) {
+                try {
+                    const moved = window.open(new URL(page, window.location.href).href, LIVE_WINDOW);
+                    if (moved) {
+                        moved.focus();
+                    }
+                } catch (error) {
+                    // Stay on this tab and send the user back from here.
+                }
+            }
+            window.focus();
+            goTo(page);
+        };
+        const arm = () => {
+            const live = openLiveSite();
+            if (!live && frame) {
+                frame.hidden = false;
+                frame.src = LIVE_URL;
+                if (hold) {
+                    hold.hidden = true;
+                }
+            }
+            const paint = () => {
+                const left = Math.max(0, endsAt - Date.now());
+                const totalSeconds = Math.ceil(left / 1000);
+                if (timerNode) {
+                    timerNode.textContent = Math.floor(totalSeconds / 60) + ":" + String(totalSeconds % 60).padStart(2, "0");
+                }
+            };
+            paint();
+            const tick = window.setInterval(paint, 1000);
+            window.setTimeout(() => {
+                window.clearInterval(tick);
+                returnToPackages();
+            }, Math.max(0, endsAt - Date.now()));
+        };
+        const wait = liveStart - Date.now();
+        if (wait > 0) {
+            window.setTimeout(arm, wait);
+        } else {
+            arm();
+        }
     }
 }
 
